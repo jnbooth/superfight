@@ -1,0 +1,90 @@
+body {
+  background: #e2e2e2 url(/background.svg) repeat;
+  color: #212121;
+  font-family: Roboto, sans-serif;
+  font-size: 18px;
+  line-height: 1.2;
+  margin: 0;
+  min-width: 320px;
+  padding: 0;
+}
+
+input[type='radio'] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+input:checked + .card,
+input:checked + .card + .card {
+  box-shadow: 0 0 11px black;
+}
+
+.card {
+  display: block;
+  padding: 1em;
+  cursor: pointer;
+  border-radius: 0.5em;
+  border: 2px solid #aaa;
+  width: 8em;
+  font-size: 1.2em;
+  text-align: center;
+  min-height: 5em;
+}
+
+input:disabled + .card,
+input:disabled + .card + .card {
+  cursor: initial;
+}
+
+.black {
+  background-color: #111;
+  color: #fff;
+}
+
+fieldset {
+  border: none;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5em;
+}
+
+#players {
+  min-width: 6em;
+  margin-right: 2em;
+}
+
+.player {
+  display: flex;
+  gap: 0.25em;
+}
+
+.player span:first-child {
+  flex-grow: 1;
+}
+
+.player span:last-child {
+  width: 1.1em;
+}
+
+.active {
+  font-weight: bold;
+}
+
+#fighters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3em;
+  margin-bottom: 2em;
+}
+
+.fighter {
+  display: flex;
+  gap: 0.25em;
+}
+
+#app {
+  display: flex;
+}

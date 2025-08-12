@@ -1,0 +1,15 @@
+arrowParens: avoid
+singleQuote: true
+plugins:
+  - '@trivago/prettier-plugin-sort-imports'
+importOrder:
+  - '^node:'
+  - <THIRD_PARTY_MODULES>
+  - ^[./]
+importOrderSortSpecifiers: true
+overrides:
+  - files:
+      - '*.ts'
+    options:
+      importOrderParserPlugins:
+        - typescript
