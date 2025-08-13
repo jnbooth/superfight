@@ -1,11 +1,11 @@
 export interface Fighter {
-  Black: string;
   Player: number;
   White: string;
+  Black: string;
+  Tiebreak: string;
 }
 
 export interface Player {
-  Active: boolean;
   Name: string;
   Points: number;
   Vote: number;
@@ -17,12 +17,17 @@ export interface GameState {
   Players: Player[];
   Fighters: Fighter[];
   Streak: number;
-  Tiebreak: string[];
 }
 
 export const defaultGameState: GameState = {
   Players: [],
   Fighters: [],
   Streak: 0,
-  Tiebreak: [],
 };
+
+export function canVote(
+  { Fighters: [a, b] }: GameState,
+  playerIndex: number,
+): boolean {
+  return a && b && a.Player !== playerIndex && b.Player !== playerIndex;
+}

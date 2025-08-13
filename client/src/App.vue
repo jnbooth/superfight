@@ -3,7 +3,7 @@ import { onMounted, onUnmounted, ref } from 'vue';
 import RocketIcon from './assets/rocket.svg?component';
 import JoinForm from './components/JoinForm.vue';
 import PlayerInfo from './components/PlayerInfo.vue';
-import { defaultGameState } from './state';
+import { type GameState, canVote, defaultGameState } from './state';
 
 const etag = ref('');
 const gamestate = ref(defaultGameState);
@@ -26,12 +26,17 @@ async function callApi(
   if (res.status === 304) {
     return;
   }
-  gamestate.value = await res.json();
+  const state: GameState = await res.json();
   etag.value = res.headers.get('ETag') ?? etag.value;
   if (playerIndex.value !== -1) {
-    optFighter.value =
-      gamestate.value.Players[playerIndex.value].Vote.toString();
+    optFighter.value = state.Players[playerIndex.value].Vote.toString();
   }
+  if (state.Streak === 0 && state.Fighters.length === 1) {
+    const fighter = state.Fighters[0];
+    fighter.Black = '';
+    fighter.White = '';
+  }
+  gamestate.value = state;
 }
 
 async function poll(): Promise<void> {
@@ -40,9 +45,6 @@ async function poll(): Promise<void> {
 
 async function join(event: Event): Promise<void> {
   event.preventDefault();
-  if (!playerName.value) {
-    return;
-  }
   await callApi('PUT', '/api/join', {
     name: playerName.value,
   });
@@ -84,11 +86,9 @@ poll();
     <span class="term">Players</span>
     <ol>
       <PlayerInfo
-        v-for="({ Active, Name, Points, Vote, White }, i) in gamestate.Players"
+        v-for="({ Name, Points, Vote, White }, i) in gamestate.Players"
         :key="Name"
-        :waiting="
-          Active ? !!White[0] : !Vote && gamestate.Fighters.length === 2
-        "
+        :waiting="!!White[0] || (!Vote && canVote(gamestate, i))"
         :points="Points"
         :you="i === playerIndex"
       >
@@ -97,13 +97,9 @@ poll();
     </ol>
   </div>
   <div v-if="playerIndex !== -1" id="game">
-    <form
-      v-if="!!gamestate.Streak || gamestate.Fighters.length === 2"
-      id="fighters"
-      @change="vote"
-    >
+    <form id="fighters" @change="vote">
       <label
-        v-for="({ Black, White }, i) in gamestate.Fighters"
+        v-for="({ Black, White, Tiebreak }, i) in gamestate.Fighters"
         :key="i"
         class="fighter"
       >
@@ -112,10 +108,11 @@ poll();
           type="radio"
           name="fighter"
           :value="i + 1"
-          :disabled="!!gamestate.Players[playerIndex].Active"
+          :disabled="!canVote(gamestate, playerIndex)"
         />
         <span class="card white">{{ White }}</span>
         <span class="card black">{{ Black }}</span>
+        <span v-if="!!Tiebreak" class="card white">{{ Tiebreak }}</span>
       </label>
     </form>
     <form
@@ -123,27 +120,39 @@ poll();
       id="hand"
       @submit="choose"
     >
-      <fieldset>
-        <label
-          v-for="(text, i) in gamestate.Players[playerIndex].White"
-          :key="i"
-        >
-          <input v-model="optWhite" type="radio" name="white" :value="i + 1" />
-          <span class="card white">{{ text }}</span>
-        </label>
-      </fieldset>
-      <fieldset>
-        <label
-          v-for="(text, i) in gamestate.Players[playerIndex].Black"
-          :key="i"
-        >
-          <input v-model="optBlack" type="radio" name="black" :value="i + 1" />
-          <span class="card black">{{ text }}</span>
-        </label>
-      </fieldset>
       <button type="submit" :disabled="!optWhite || !optBlack">
         <RocketIcon /><span>Submit</span>
       </button>
+      <div>
+        <fieldset>
+          <label
+            v-for="(text, i) in gamestate.Players[playerIndex].White"
+            :key="i"
+          >
+            <input
+              v-model="optWhite"
+              type="radio"
+              name="white"
+              :value="i + 1"
+            />
+            <span class="card white">{{ text }}</span>
+          </label>
+        </fieldset>
+        <fieldset>
+          <label
+            v-for="(text, i) in gamestate.Players[playerIndex].Black"
+            :key="i"
+          >
+            <input
+              v-model="optBlack"
+              type="radio"
+              name="black"
+              :value="i + 1"
+            />
+            <span class="card black">{{ text }}</span>
+          </label>
+        </fieldset>
+      </div>
     </form>
   </div>
   <JoinForm

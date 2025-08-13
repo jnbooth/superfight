@@ -16,54 +16,66 @@ input[type='radio'] {
   height: 0;
 }
 
-input:checked + .card,
-input:checked + .card + .card {
-  box-shadow: 0 0 11px black;
-}
-
 .card {
   display: block;
   padding: 1em;
   cursor: pointer;
-  border-radius: 0.5em;
-  border: 2px solid #aaa;
   width: 8em;
   font-size: 1.2em;
   text-align: center;
   min-height: 5em;
+  background-color: var(--bg);
+  border: 5px solid var(--bg);
+  border-radius: 13.5px;
+  font-family:
+    Helvetica Neue,
+    Nimbus Sans L,
+    sans-serif;
+  font-weight: 700;
 }
 
-input:disabled + .card,
-input:disabled + .card + .card {
+input:disabled ~ .card {
   cursor: initial;
 }
 
 .black {
-  background-color: #111;
+  --bg: #000;
   color: #fff;
+  box-shadow:
+    0.15em 0.15em 0.4em rgba(0, 0, 0, 0.3),
+    -0.05em -0.05em 0.4em rgba(0, 0, 0, 0.3);
+}
+
+input:checked ~ .white {
+  border-color: #42a5f5;
 }
 
 .white {
-  background-color: white;
+  --bg: #fff;
+  box-shadow:
+    0.15em 0.15em 0.4em rgba(66, 165, 245, 0.3),
+    -0.05em -0.05em 0.4em rgba(66, 165, 245, 0.3);
+}
+
+input:checked ~ .black {
+  border-color: #ff6122;
 }
 
 fieldset {
   border: none;
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
   gap: 0.5em;
-  padding: 0.75em 0;
-}
-
-fieldset {
-  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
 }
 
 #players {
   background: white;
   font-size: 1rem;
-  width: 18rem;
+  width: 9rem;
+  min-width: 9rem;
   padding: 1em;
   margin-right: 32px;
   box-shadow:
@@ -83,7 +95,6 @@ fieldset {
   align-items: center;
   display: flex;
   justify-content: space-between;
-  padding: 0.5em 0;
 }
 
 .name {
@@ -91,6 +102,7 @@ fieldset {
   overflow: hidden;
   text-overflow: ellipsis;
   flex-grow: 1;
+  margin-right: 2em;
 }
 
 #join {
@@ -191,38 +203,37 @@ button svg {
 #fighters {
   display: flex;
   flex-wrap: wrap;
-  gap: 3em;
+  gap: 2em;
   margin-bottom: 2em;
+  justify-content: center;
+  flex-direction: column;
 }
 
 .fighter {
   display: flex;
+  justify-content: center;
   gap: 0.25em;
 }
 
 #app {
   display: flex;
   width: 100vw;
-  height: 100vh;
+  min-height: 100vh;
   padding-right: 32px;
   box-sizing: border-box;
 }
 
-#hand {
-  background-color: white;
-  padding: 1em 2em 2.5em 2em;
-  border-radius: 10px;
-  box-shadow:
-    rgba(0, 0, 0, 0.2) 0px 2px 4px -1px,
-    rgba(0, 0, 0, 0.14) 0px 4px 5px 0px,
-    rgba(0, 0, 0, 0.12) 0px 1px 10px 0px;
+#hand div {
+  display: flex;
+  gap: 0.5em;
+  justify-content: center;
 }
 
 #hand button {
-  margin-top: 0.5em;
+  margin: 0 auto 1em auto;
 }
 
 #game {
-  padding-top: 2em;
-  margin-left: 0.5em;
+  margin: 1em auto;
+  min-width: 30em;
 }
