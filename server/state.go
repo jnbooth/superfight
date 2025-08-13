@@ -29,9 +29,9 @@ func (player *Player) draw(white *Deck, black *Deck) {
 
 func (player *Player) play(index byte, white int, black int) Fighter {
 	fighter := Fighter{
-		Black:  player.Black[black],
+		Black:  player.Black[black-1],
 		Player: index,
-		White:  player.White[white],
+		White:  player.White[white-1],
 	}
 	player.Black = [3]string{}
 	player.White = [3]string{}
@@ -65,7 +65,7 @@ func newGameState(cards *Cards) *GameState {
 		Streak:   0,
 		white:    newDeck(cards.white),
 		black:    newDeck(cards.black),
-		nextUp:   1,
+		nextUp:   0,
 	}
 }
 
@@ -85,7 +85,7 @@ func (state *GameState) reset() {
 	state.white.shuffle()
 	state.Players[0].draw(&state.white, &state.black)
 	state.Players[1].draw(&state.white, &state.black)
-	state.nextUp = 1
+	state.nextUp = 0
 }
 
 func (state *GameState) addPlayer(name string) int {
@@ -97,7 +97,7 @@ func (state *GameState) addPlayer(name string) int {
 	playerIndex := len(state.Players)
 	state.Players = append(state.Players, newPlayer(name))
 	if playerIndex < 2 {
-		state.Players[playerIndex].draw(&state.white, &state.black)
+		state.advanceNextUp()
 	}
 	return playerIndex
 }

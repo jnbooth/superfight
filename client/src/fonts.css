@@ -1,0 +1,77 @@
+@font-face {
+  font-display: swap;
+  font-family: Nimbus Sans L;
+  font-style: normal;
+  font-weight: 400;
+  src:
+    local('Nimbus Sans L'),
+    local('NimbusSansL'),
+    url(/assets/fonts/nimbus-sans-l-regular.5447370a4b88184218fd.woff2)
+      format('woff2');
+}
+@font-face {
+  font-display: swap;
+  font-family: Nimbus Sans L;
+  font-style: normal;
+  font-weight: 700;
+  src:
+    local('Nimbus Sans L Bold'),
+    local('NimbusSansL-Bold'),
+    url(/assets/fonts/nimbus-sans-l-700.b4380da3eff832b3ecea.woff2)
+      format('woff2');
+}
+@font-face {
+  font-display: fallback;
+  font-family: Source Code Pro;
+  font-style: normal;
+  font-weight: 400;
+  src:
+    local('Source Code Pro'),
+    local('SourceCodePro-Regular'),
+    url(/assets/fonts/source-code-pro-v8-latin-regular.4b509ae46864520b2369.woff2)
+      format('woff2');
+}
+@font-face {
+  font-display: fallback;
+  font-family: Roboto;
+  font-style: normal;
+  font-weight: 400;
+  src:
+    local('Roboto'),
+    local('Roboto-Regular'),
+    url(/assets/fonts/roboto-v18-latin-regular.cb41c1e71debe927815c.woff2)
+      format('woff2');
+}
+@font-face {
+  font-display: fallback;
+  font-family: Roboto;
+  font-style: italic;
+  font-weight: 400;
+  src:
+    local('Roboto Italic'),
+    local('Roboto-Italic'),
+    url(/assets/fonts/roboto-v18-latin-italic.06db94b5fad70e44175d.woff2)
+      format('woff2');
+}
+@font-face {
+  font-display: fallback;
+  font-family: Roboto;
+  font-style: normal;
+  font-weight: 700;
+  src:
+    local('Roboto Bold'),
+    local('Roboto-Bold'),
+    url(/assets/fonts/roboto-v18-latin-700.1ab7bbddcdbde1b6f274.woff2)
+      format('woff2');
+}
+@font-face {
+  font-display: fallback;
+  font-family: Roboto;
+  font-style: italic;
+  font-weight: 700;
+  src:
+    local('Roboto Bold Italic'),
+    local('Roboto-BoldItalic'),
+    url(/assets/fonts/roboto-v18-latin-700italic.d8ba12774e48a5a73c24.woff2)
+      format('woff2');
+}

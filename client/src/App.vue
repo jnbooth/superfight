@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue';
+import RocketIcon from './assets/rocket.svg?component';
+import JoinForm from './components/JoinForm.vue';
+import PlayerInfo from './components/PlayerInfo.vue';
 import { defaultGameState } from './state';
 
 const etag = ref('');
@@ -37,6 +40,9 @@ async function poll(): Promise<void> {
 
 async function join(event: Event): Promise<void> {
   event.preventDefault();
+  if (!playerName.value) {
+    return;
+  }
   await callApi('PUT', '/api/join', {
     name: playerName.value,
   });
@@ -62,16 +68,10 @@ async function vote(event: Event): Promise<void> {
   });
 }
 
-/*
-async function resetGame(): Promise<void> {
-  await callApi('POST', '/api/reset');
-}
-*/
-
 function useIntervalFn(cb: () => void, ms: number) {
-  let int: number = 0;
+  let int: ReturnType<typeof setInterval> | undefined;
   onMounted(() => (int = setInterval(cb, ms)));
-  onUnmounted(() => clearInterval(int));
+  onUnmounted(() => int && clearInterval(int));
 }
 
 useIntervalFn(poll, 1000);
@@ -81,23 +81,22 @@ poll();
 
 <template>
   <div id="players">
-    <div
-      v-for="{ Active, Name, Points, Vote, White } in gamestate.Players"
-      :key="Name"
-      :class="Active ? 'player active' : 'player'"
-    >
-      <span>{{ Name }}</span>
-      <span>{{ Points }}</span>
-      <span>{{
-        Active !== (gamestate.Fighters.length !== 2)
-          ? ''
-          : (Active ? !White[0] : !!Vote)
-            ? '✅'
-            : '🕑'
-      }}</span>
-    </div>
+    <span class="term">Players</span>
+    <ol>
+      <PlayerInfo
+        v-for="({ Active, Name, Points, Vote, White }, i) in gamestate.Players"
+        :key="Name"
+        :waiting="
+          Active ? !!White[0] : !Vote && gamestate.Fighters.length === 2
+        "
+        :points="Points"
+        :you="i === playerIndex"
+      >
+        {{ Name }}
+      </PlayerInfo>
+    </ol>
   </div>
-  <div v-if="playerIndex !== -1">
+  <div v-if="playerIndex !== -1" id="game">
     <form
       v-if="!!gamestate.Streak || gamestate.Fighters.length === 2"
       id="fighters"
@@ -107,7 +106,8 @@ poll();
         v-for="({ Black, White }, i) in gamestate.Fighters"
         :key="i"
         class="fighter"
-        ><input
+      >
+        <input
           v-model="optFighter"
           type="radio"
           name="fighter"
@@ -115,8 +115,8 @@ poll();
           :disabled="!!gamestate.Players[playerIndex].Active"
         />
         <span class="card white">{{ White }}</span>
-        <span class="card black">{{ Black }}</span></label
-      >
+        <span class="card black">{{ Black }}</span>
+      </label>
     </form>
     <form
       v-if="!!gamestate.Players[playerIndex].White[0]"
@@ -128,27 +128,28 @@ poll();
           v-for="(text, i) in gamestate.Players[playerIndex].White"
           :key="i"
         >
-          <input v-model="optWhite" type="radio" name="white" :value="i" />
-          <span class="card white">{{ text }}</span></label
-        >
+          <input v-model="optWhite" type="radio" name="white" :value="i + 1" />
+          <span class="card white">{{ text }}</span>
+        </label>
       </fieldset>
       <fieldset>
         <label
           v-for="(text, i) in gamestate.Players[playerIndex].Black"
           :key="i"
         >
-          <input v-model="optBlack" type="radio" name="black" :value="i" />
-          <span class="card black">{{ text }}</span></label
-        >
+          <input v-model="optBlack" type="radio" name="black" :value="i + 1" />
+          <span class="card black">{{ text }}</span>
+        </label>
       </fieldset>
-      <button type="submit" :disabled="!optWhite || !optBlack">Submit</button>
+      <button type="submit" :disabled="!optWhite || !optBlack">
+        <RocketIcon /><span>Submit</span>
+      </button>
     </form>
   </div>
-  <form v-if="playerIndex === -1" @submit="join">
-    <label>
-      Enter your name:
-      <input v-model="playerName" type="text" />
-    </label>
-    <button type="submit">Join</button>
-  </form>
+  <JoinForm
+    v-if="playerIndex === -1"
+    id="join"
+    v-model="playerName"
+    @submit="join"
+  />
 </template>
