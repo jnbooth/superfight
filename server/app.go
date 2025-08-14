@@ -44,7 +44,22 @@ func main() {
 		gameJson.Write(w, r)
 	})
 
+	http.HandleFunc("/api/game", func(w http.ResponseWriter, r *http.Request) {
+		goal := r.FormValue("Goal")
+		if goal != "" {
+			goal, _ := strconv.ParseUint(goal, 10, 8)
+			gamestate.SetGoal(byte(goal))
+		}
+		handSize := r.FormValue("HandSize")
+		if handSize != "" {
+			handSize, _ := strconv.ParseUint(handSize, 10, 8)
+			gamestate.SetHandSize(byte(handSize))
+		}
+		gameJson = NewJsonCache(&gamestate)
+		gameJson.Write(w, r)
+	})
+
 	http.Handle("/", http.FileServer(http.Dir("../client/dist")))
 
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Fatal(http.ListenAndServe(":8000", nil))
 }

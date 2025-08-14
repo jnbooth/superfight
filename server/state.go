@@ -1,5 +1,17 @@
 package main
 
+type GameSettings struct {
+	HandSize byte
+	Goal     byte
+}
+
+func DefaultGameSettings() GameSettings {
+	return GameSettings{
+		HandSize: 3,
+		Goal:     6,
+	}
+}
+
 type Fighter struct {
 	Player   byte
 	White    string
@@ -11,29 +23,25 @@ type Player struct {
 	Name   string
 	Points byte
 	Vote   byte
-	White  [3]string
-	Black  [3]string
+	White  []string
+	Black  []string
 }
 
-func NewPlayer(name string) Player {
-	return Player{
-		Name: name,
+func (player *Player) Draw(n byte, white *Deck, black *Deck) {
+	for range n {
+		player.White = append(player.White, white.Draw())
+		player.Black = append(player.Black, black.Draw())
 	}
-}
-
-func (player *Player) Draw(white *Deck, black *Deck) {
-	player.White = [3]string{white.Draw(), white.Draw(), white.Draw()}
-	player.Black = [3]string{black.Draw(), black.Draw(), black.Draw()}
 }
 
 func (player *Player) Play(index byte, white int, black int) Fighter {
 	fighter := Fighter{
-		Black:  player.Black[black-1],
 		Player: index,
 		White:  player.White[white-1],
+		Black:  player.Black[black-1],
 	}
-	player.Black = [3]string{}
-	player.White = [3]string{}
+	player.White = player.White[:0]
+	player.Black = player.Black[:0]
 	return fighter
 }
 
@@ -43,22 +51,23 @@ func (player *Player) Reset() {
 }
 
 type GameState struct {
+	Done     bool
 	Players  []Player
 	Fighters []Fighter
+	Settings GameSettings
 	Streak   byte
 	nextUp   byte
-	black    Deck
 	white    Deck
+	black    Deck
 }
 
 func NewGameState(cards *Cards) *GameState {
 	return &GameState{
 		Players:  make([]Player, 0, 6),
 		Fighters: make([]Fighter, 0, 2),
-		Streak:   0,
+		Settings: DefaultGameSettings(),
 		white:    NewDeck(cards.white),
 		black:    NewDeck(cards.black),
-		nextUp:   0,
 	}
 }
 
@@ -66,16 +75,22 @@ func (state *GameState) Choose(player byte, white int, black int) {
 	state.Fighters = append(state.Fighters, state.Players[player].Play(player, white, black))
 }
 
+func (state *GameState) draw(player *Player) {
+	player.Draw(state.Settings.HandSize, &state.white, &state.black)
+}
+
 func (state *GameState) Reset() {
 	for i := range state.Players {
 		state.Players[i].Reset()
 	}
+	state.Done = false
 	state.Fighters = state.Fighters[:0]
 	state.Streak = 0
-	state.black.Shuffle()
 	state.white.Shuffle()
-	state.Players[0].Draw(&state.white, &state.black)
-	state.Players[1].Draw(&state.white, &state.black)
+	state.black.Shuffle()
+	for i := range min(len(state.Players), 2) {
+		state.draw(&state.Players[i])
+	}
 	state.nextUp = 0
 }
 
@@ -86,11 +101,45 @@ func (state *GameState) AddPlayer(name string) int {
 		}
 	}
 	playerIndex := len(state.Players)
-	state.Players = append(state.Players, NewPlayer(name))
+	state.Players = append(state.Players, Player{
+		Name:  name,
+		White: make([]string, 0, state.Settings.HandSize),
+		Black: make([]string, 0, state.Settings.HandSize),
+	})
 	if playerIndex < 2 {
 		state.advanceNextUp()
 	}
 	return playerIndex
+}
+
+func (state *GameState) SetGoal(goal byte) {
+	state.Settings.Goal = goal
+	state.Done = false
+	for i := range state.Players {
+		if state.Players[i].Points >= goal {
+			state.Done = true
+			return
+		}
+	}
+}
+
+func (state *GameState) SetHandSize(size byte) {
+	state.Settings.HandSize = size
+	for i := range state.Players {
+		player := &state.Players[i]
+		hand := byte(len(player.White))
+		if hand == 0 {
+			continue
+		}
+		if hand < size {
+			player.Draw(size-hand, &state.white, &state.black)
+			continue
+		}
+		if hand > size {
+			player.White = player.White[:size]
+			player.Black = player.Black[:size]
+		}
+	}
 }
 
 func (state *GameState) resetVotes() {
@@ -112,7 +161,7 @@ func (state *GameState) advanceNextUp() {
 	if len(state.Fighters) == 1 && state.Fighters[0].Player == state.nextUp {
 		state.incrementNextUp()
 	}
-	state.Players[state.nextUp].Draw(&state.white, &state.black)
+	state.draw(&state.Players[state.nextUp])
 }
 
 func (state *GameState) Vote(player byte, vote byte) {
@@ -152,7 +201,11 @@ func (state *GameState) Vote(player byte, vote byte) {
 
 	state.resetVotes()
 
-	state.Players[state.Fighters[0].Player].Points += 1
+	winner := &state.Players[state.Fighters[0].Player]
+	winner.Points += 1
+	if winner.Points >= state.Settings.Goal {
+		state.Done = true
+	}
 
 	if state.Streak == 3 {
 		state.Fighters = state.Fighters[:0]

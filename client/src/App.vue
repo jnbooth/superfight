@@ -1,15 +1,15 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue';
 import RocketIcon from './assets/rocket.svg?component';
+import TrophyIcon from './assets/trophy.svg?component';
 import JoinForm from './components/JoinForm.vue';
 import PlayerInfo from './components/PlayerInfo.vue';
-import { type GameState, canVote, defaultGameState } from './state';
+import { type GameState, canVote, defaultGameState, getWinners } from './state';
 
 const etag = ref('');
 const gamestate = ref(defaultGameState);
 const playerName = ref('');
 const playerIndex = ref(-1);
-const optFighter = ref('0');
 const optWhite = ref('');
 const optBlack = ref('');
 
@@ -28,9 +28,6 @@ async function callApi(
   }
   const state: GameState = await res.json();
   etag.value = res.headers.get('ETag') ?? etag.value;
-  if (playerIndex.value !== -1) {
-    optFighter.value = state.Players[playerIndex.value].Vote.toString();
-  }
   if (state.Streak === 0 && state.Fighters.length === 1) {
     const fighter = state.Fighters[0];
     fighter.Black = '';
@@ -62,12 +59,31 @@ async function choose(event: Event): Promise<void> {
   });
 }
 
+async function setGoal(event: Event): Promise<void> {
+  event.preventDefault();
+  await callApi('PATCH', '/api/game', {
+    Goal: gamestate.value.Settings.Goal.toString(),
+  });
+}
+
+async function setHandSize(event: Event): Promise<void> {
+  event.preventDefault();
+  await callApi('PATCH', '/api/game', {
+    HandSize: gamestate.value.Settings.HandSize.toString(),
+  });
+}
+
 async function vote(event: Event): Promise<void> {
   event.preventDefault();
   await callApi('PUT', '/api/vote', {
     player: playerIndex.value.toString(),
-    fighter: optFighter.value,
+    fighter: gamestate.value.Players[playerIndex.value].Vote.toString(),
   });
+}
+
+async function resetGame(event: Event): Promise<void> {
+  event.preventDefault();
+  await callApi('PUT', '/api/reset');
 }
 
 function useIntervalFn(cb: () => void, ms: number) {
@@ -82,21 +98,51 @@ poll();
 </script>
 
 <template>
-  <div id="players">
+  <div id="sidebar">
     <span class="term">Players</span>
-    <ol>
+    <ol id="players">
       <PlayerInfo
         v-for="({ Name, Points, Vote, White }, i) in gamestate.Players"
         :key="Name"
-        :waiting="!!White[0] || (!Vote && canVote(gamestate, i))"
+        :waiting="!!White.length || (!Vote && canVote(gamestate, i))"
         :points="Points"
         :you="i === playerIndex"
       >
         {{ Name }}
       </PlayerInfo>
     </ol>
+    <span class="term">Settings</span>
+    <form id="settings">
+      <label>
+        <span>Goal</span>
+        <input
+          v-model.number="gamestate.Settings.Goal"
+          type="number"
+          name="Goal"
+          min="1"
+          max="255"
+          @change="setGoal"
+        />
+      </label>
+      <label>
+        <span>Hand Size</span>
+        <input
+          v-model.number="gamestate.Settings.HandSize"
+          type="number"
+          name="HandSize"
+          min="1"
+          max="255"
+          @change="setHandSize"
+        />
+      </label>
+    </form>
   </div>
-  <div v-if="playerIndex !== -1" id="game">
+  <ul v-if="gamestate.Done" id="victory">
+    <TrophyIcon />
+    <li v-for="winner in getWinners(gamestate)" :key="winner">{{ winner }}</li>
+    <button @click="resetGame">Start New Game</button>
+  </ul>
+  <div v-else-if="playerIndex !== -1" id="game">
     <form id="fighters" @change="vote">
       <label
         v-for="({ Black, White, Tiebreak }, i) in gamestate.Fighters"
@@ -104,7 +150,7 @@ poll();
         class="fighter"
       >
         <input
-          v-model="optFighter"
+          v-model.number="gamestate.Players[playerIndex].Vote"
           type="radio"
           name="fighter"
           :value="i + 1"
@@ -116,7 +162,7 @@ poll();
       </label>
     </form>
     <form
-      v-if="!!gamestate.Players[playerIndex].White[0]"
+      v-if="!!gamestate.Players[playerIndex].White.length"
       id="hand"
       @submit="choose"
     >
@@ -155,10 +201,5 @@ poll();
       </div>
     </form>
   </div>
-  <JoinForm
-    v-if="playerIndex === -1"
-    id="join"
-    v-model="playerName"
-    @submit="join"
-  />
+  <JoinForm v-else id="join" v-model="playerName" @submit="join" />
 </template>
