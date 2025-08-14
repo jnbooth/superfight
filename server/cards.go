@@ -11,20 +11,16 @@ type Cards struct {
 	white []string
 }
 
-func check(e error) {
-	if e != nil {
-		panic(e)
-	}
-}
-
 func loadCardsFromFile(filename string) []string {
 	dat, err := os.ReadFile(filename)
-	check(err)
+	if err != nil {
+		panic(err)
+	}
 	lines := string(dat[:len(dat)-1])
 	return strings.Split(lines, "\n")
 }
 
-func loadCards() Cards {
+func LoadCards() Cards {
 	black := loadCardsFromFile("../cards/black.txt")
 	white := loadCardsFromFile("../cards/white.txt")
 	return Cards{black: black, white: white}
@@ -36,7 +32,7 @@ type Deck struct {
 	values   []string
 }
 
-func newDeck(values []string) Deck {
+func NewDeck(values []string) Deck {
 	deck := Deck{
 		i:        0,
 		shuffled: make([]int, len(values)),
@@ -45,20 +41,20 @@ func newDeck(values []string) Deck {
 	for i := range deck.shuffled {
 		deck.shuffled[i] = i
 	}
-	deck.shuffle()
+	deck.Shuffle()
 	return deck
 }
 
-func (deck *Deck) draw() string {
+func (deck *Deck) Draw() string {
 	card := deck.values[deck.shuffled[deck.i]]
 	deck.i += 1
 	if deck.i == len(deck.shuffled) {
-		deck.shuffle()
+		deck.Shuffle()
 	}
 	return card
 }
 
-func (deck *Deck) shuffle() {
+func (deck *Deck) Shuffle() {
 	deck.i = 0
 	rand.Shuffle(len(deck.shuffled), func(i int, j int) {
 		deck.shuffled[i], deck.shuffled[j] = deck.shuffled[j], deck.shuffled[i]

@@ -15,18 +15,18 @@ type Player struct {
 	Black  [3]string
 }
 
-func newPlayer(name string) Player {
+func NewPlayer(name string) Player {
 	return Player{
 		Name: name,
 	}
 }
 
-func (player *Player) draw(white *Deck, black *Deck) {
-	player.White = [3]string{white.draw(), white.draw(), white.draw()}
-	player.Black = [3]string{black.draw(), black.draw(), black.draw()}
+func (player *Player) Draw(white *Deck, black *Deck) {
+	player.White = [3]string{white.Draw(), white.Draw(), white.Draw()}
+	player.Black = [3]string{black.Draw(), black.Draw(), black.Draw()}
 }
 
-func (player *Player) play(index byte, white int, black int) Fighter {
+func (player *Player) Play(index byte, white int, black int) Fighter {
 	fighter := Fighter{
 		Black:  player.Black[black-1],
 		Player: index,
@@ -37,12 +37,8 @@ func (player *Player) play(index byte, white int, black int) Fighter {
 	return fighter
 }
 
-func (player *Player) endTurn() {
+func (player *Player) Reset() {
 	player.Vote = 0
-}
-
-func (player *Player) reset() {
-	player.endTurn()
 	player.Points = 0
 }
 
@@ -55,42 +51,42 @@ type GameState struct {
 	white    Deck
 }
 
-func newGameState(cards *Cards) *GameState {
+func NewGameState(cards *Cards) *GameState {
 	return &GameState{
 		Players:  make([]Player, 0, 6),
 		Fighters: make([]Fighter, 0, 2),
 		Streak:   0,
-		white:    newDeck(cards.white),
-		black:    newDeck(cards.black),
+		white:    NewDeck(cards.white),
+		black:    NewDeck(cards.black),
 		nextUp:   0,
 	}
 }
 
-func (state *GameState) choose(player byte, white int, black int) {
-	state.Fighters = append(state.Fighters, state.Players[player].play(player, white, black))
+func (state *GameState) Choose(player byte, white int, black int) {
+	state.Fighters = append(state.Fighters, state.Players[player].Play(player, white, black))
 }
 
-func (state *GameState) reset() {
+func (state *GameState) Reset() {
 	for i := range state.Players {
-		state.Players[i].reset()
+		state.Players[i].Reset()
 	}
 	state.Fighters = state.Fighters[:0]
 	state.Streak = 0
-	state.black.shuffle()
-	state.white.shuffle()
-	state.Players[0].draw(&state.white, &state.black)
-	state.Players[1].draw(&state.white, &state.black)
+	state.black.Shuffle()
+	state.white.Shuffle()
+	state.Players[0].Draw(&state.white, &state.black)
+	state.Players[1].Draw(&state.white, &state.black)
 	state.nextUp = 0
 }
 
-func (state *GameState) addPlayer(name string) int {
+func (state *GameState) AddPlayer(name string) int {
 	for i := range state.Players {
 		if state.Players[i].Name == name {
 			return i
 		}
 	}
 	playerIndex := len(state.Players)
-	state.Players = append(state.Players, newPlayer(name))
+	state.Players = append(state.Players, NewPlayer(name))
 	if playerIndex < 2 {
 		state.advanceNextUp()
 	}
@@ -116,15 +112,15 @@ func (state *GameState) advanceNextUp() {
 	if len(state.Fighters) == 1 && state.Fighters[0].Player == state.nextUp {
 		state.incrementNextUp()
 	}
-	state.Players[state.nextUp].draw(&state.white, &state.black)
+	state.Players[state.nextUp].Draw(&state.white, &state.black)
 }
 
-func (state *GameState) vote(player byte, vote byte) {
+func (state *GameState) Vote(player byte, vote byte) {
 	state.Players[player].Vote = vote
 	newVotes := 0
 	oldVotes := 0
-	for i := range state.Players {
-		if state.Fighters[0].Player == byte(i) || state.Fighters[1].Player == byte(i) {
+	for i := range byte(len(state.Players)) {
+		if state.Fighters[0].Player == i || state.Fighters[1].Player == i {
 			continue
 		}
 		vote := state.Players[i].Vote
@@ -146,17 +142,15 @@ func (state *GameState) vote(player byte, vote byte) {
 		state.Fighters[0] = state.Fighters[1]
 		state.Streak = 1
 	} else {
-		state.Fighters[0].Tiebreak = state.white.draw()
-		state.Fighters[1].Tiebreak = state.white.draw()
+		state.Fighters[0].Tiebreak = state.white.Draw()
+		state.Fighters[1].Tiebreak = state.white.Draw()
 		for i := range state.Players {
 			state.Players[i].Vote = 0
 		}
 		return
 	}
 
-	for i := range state.Players {
-		state.Players[i].endTurn()
-	}
+	state.resetVotes()
 
 	state.Players[state.Fighters[0].Player].Points += 1
 
