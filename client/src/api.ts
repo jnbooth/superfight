@@ -1,5 +1,5 @@
 import { type Ref, onMounted, onUnmounted, ref } from 'vue';
-import { type GameState, defaultGameState, parseGame } from './state';
+import { type GameState, defaultGameState } from './state';
 
 interface Endpoints {
   PUT: {
@@ -63,7 +63,7 @@ export function useServerGameState(
       source.addEventListener(event, listener, { signal });
     }
 
-    onEvent('gameupdate', event => (gamestate.value = parseGame(event.data)));
+    onEvent('gameupdate', event => (gamestate.value = JSON.parse(event.data)));
 
     if (onReset) {
       onEvent('reset', event => onReset(event.data));

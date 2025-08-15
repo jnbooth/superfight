@@ -120,7 +120,11 @@ async function resetGame(event: Event): Promise<void> {
     <button @click="resetGame">Start New Game</button>
   </ul>
   <div v-else-if="!!player" id="game">
-    <form id="fighters" @change="vote">
+    <form
+      v-if="!!gamestate.Streak || gamestate.Fighters.length === 2"
+      id="fighters"
+      @change="vote"
+    >
       <label
         v-for="({ Black, White, Tiebreak }, i) in gamestate.Fighters"
         :key="i"

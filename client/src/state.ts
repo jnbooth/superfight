@@ -41,17 +41,6 @@ export function canVote(
   return a && b && a.Player !== playerIndex && b.Player !== playerIndex;
 }
 
-export function parseGame(json: string): GameState {
-  const state = JSON.parse(json);
-  const { Fighters, Streak } = state;
-  if (Streak === 0 && Fighters.length === 1) {
-    const fighter = Fighters[0];
-    fighter.Black = '';
-    fighter.White = '';
-  }
-  return state;
-}
-
 export function getWinners({
   Players,
   Settings: { Goal },
