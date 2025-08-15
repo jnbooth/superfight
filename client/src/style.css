@@ -238,6 +238,7 @@ button svg {
   display: flex;
   justify-content: center;
   gap: 0.25em;
+  flex-wrap: wrap;
 }
 
 #app {

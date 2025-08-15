@@ -8,7 +8,6 @@ import (
 	"sync"
 )
 
-// clients:    make(map[*Client]bool),
 func main() {
 	cards := LoadCards()
 	gamestate := NewGameState(&cards)
