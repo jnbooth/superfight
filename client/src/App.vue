@@ -1,59 +1,32 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue';
+import { computed, ref } from 'vue';
+import { callApi, useServerGameState } from './api';
 import RocketIcon from './assets/rocket.svg?component';
 import TrophyIcon from './assets/trophy.svg?component';
 import JoinForm from './components/JoinForm.vue';
 import PlayerInfo from './components/PlayerInfo.vue';
-import { type GameState, canVote, defaultGameState, getWinners } from './state';
+import { canVote, getWinners } from './state';
 
-const etag = ref('');
-const gamestate = ref(defaultGameState);
+const gamestate = useServerGameState();
 const playerName = ref('');
 const playerIndex = ref(-1);
-const optWhite = ref('');
-const optBlack = ref('');
+const optWhite = ref(0);
+const optBlack = ref(0);
 
-async function callApi(
-  method: string,
-  endpoint: string,
-  body?: Record<string, string>,
-): Promise<void> {
-  const res = await fetch(endpoint, {
-    method,
-    body: body ? new URLSearchParams(body) : undefined,
-    headers: [['If-None-Match', etag.value]],
-  });
-  if (res.status === 304) {
-    return;
-  }
-  const state: GameState = await res.json();
-  etag.value = res.headers.get('ETag') ?? etag.value;
-  if (state.Streak === 0 && state.Fighters.length === 1) {
-    const fighter = state.Fighters[0];
-    fighter.Black = '';
-    fighter.White = '';
-  }
-  gamestate.value = state;
-}
-
-async function poll(): Promise<void> {
-  await callApi('GET', '/api/poll');
-}
+const player = computed(() => gamestate.value.Players[playerIndex.value]);
 
 async function join(event: Event): Promise<void> {
   event.preventDefault();
-  await callApi('PUT', '/api/join', {
+  const data = await callApi('PUT', '/api/join', {
     name: playerName.value,
   });
-  playerIndex.value = gamestate.value.Players.findIndex(
-    player => player.Name === playerName.value,
-  );
+  playerIndex.value = data.playerIndex;
 }
 
 async function choose(event: Event): Promise<void> {
   event.preventDefault();
   await callApi('PUT', '/api/choose', {
-    player: playerIndex.value.toString(),
+    player: playerIndex.value,
     white: optWhite.value,
     black: optBlack.value,
   });
@@ -62,22 +35,22 @@ async function choose(event: Event): Promise<void> {
 async function setGoal(event: Event): Promise<void> {
   event.preventDefault();
   await callApi('PATCH', '/api/game', {
-    Goal: gamestate.value.Settings.Goal.toString(),
+    Goal: gamestate.value.Settings.Goal,
   });
 }
 
 async function setHandSize(event: Event): Promise<void> {
   event.preventDefault();
   await callApi('PATCH', '/api/game', {
-    HandSize: gamestate.value.Settings.HandSize.toString(),
+    HandSize: gamestate.value.Settings.HandSize,
   });
 }
 
 async function vote(event: Event): Promise<void> {
   event.preventDefault();
   await callApi('PUT', '/api/vote', {
-    player: playerIndex.value.toString(),
-    fighter: gamestate.value.Players[playerIndex.value].Vote.toString(),
+    player: playerIndex.value,
+    fighter: gamestate.value.Players[playerIndex.value].Vote,
   });
 }
 
@@ -85,16 +58,6 @@ async function resetGame(event: Event): Promise<void> {
   event.preventDefault();
   await callApi('PUT', '/api/reset');
 }
-
-function useIntervalFn(cb: () => void, ms: number) {
-  let int: ReturnType<typeof setInterval> | undefined;
-  onMounted(() => (int = setInterval(cb, ms)));
-  onUnmounted(() => int && clearInterval(int));
-}
-
-useIntervalFn(poll, 1000);
-
-poll();
 </script>
 
 <template>
@@ -142,7 +105,7 @@ poll();
     <li v-for="winner in getWinners(gamestate)" :key="winner">{{ winner }}</li>
     <button @click="resetGame">Start New Game</button>
   </ul>
-  <div v-else-if="playerIndex !== -1" id="game">
+  <div v-else-if="!!player" id="game">
     <form id="fighters" @change="vote">
       <label
         v-for="({ Black, White, Tiebreak }, i) in gamestate.Fighters"
@@ -150,7 +113,7 @@ poll();
         class="fighter"
       >
         <input
-          v-model.number="gamestate.Players[playerIndex].Vote"
+          v-model.number="player.Vote"
           type="radio"
           name="fighter"
           :value="i + 1"
@@ -161,22 +124,15 @@ poll();
         <span v-if="!!Tiebreak" class="card white">{{ Tiebreak }}</span>
       </label>
     </form>
-    <form
-      v-if="!!gamestate.Players[playerIndex].White.length"
-      id="hand"
-      @submit="choose"
-    >
+    <form v-if="!!player.White.length" id="hand" @submit="choose">
       <button type="submit" :disabled="!optWhite || !optBlack">
         <RocketIcon /><span>Submit</span>
       </button>
       <div>
         <fieldset>
-          <label
-            v-for="(text, i) in gamestate.Players[playerIndex].White"
-            :key="i"
-          >
+          <label v-for="(text, i) in player.White" :key="i">
             <input
-              v-model="optWhite"
+              v-model.number="optWhite"
               type="radio"
               name="white"
               :value="i + 1"
@@ -185,12 +141,9 @@ poll();
           </label>
         </fieldset>
         <fieldset>
-          <label
-            v-for="(text, i) in gamestate.Players[playerIndex].Black"
-            :key="i"
-          >
+          <label v-for="(text, i) in player.Black" :key="i">
             <input
-              v-model="optBlack"
+              v-model.number="optBlack"
               type="radio"
               name="black"
               :value="i + 1"

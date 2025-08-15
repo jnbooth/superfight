@@ -161,6 +161,11 @@ ul {
 
 #settings {
   display: flex;
+  flex-direction: column;
+}
+
+#settings label {
+  display: flex;
 }
 
 #settings span {

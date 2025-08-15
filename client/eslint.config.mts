@@ -11,4 +11,9 @@ export default defineConfigWithVueTs(
   pluginVue.configs['flat/recommended'],
   vueTsConfigs.recommended,
   pluginPrettier,
+  {
+    rules: {
+      '@typescript-eslint/no-empty-object-type': 'off',
+    },
+  },
 );
