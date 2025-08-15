@@ -49,7 +49,6 @@ export function parseGame(json: string): GameState {
     fighter.Black = '';
     fighter.White = '';
   }
-  console.log('state', state);
   return state;
 }
 

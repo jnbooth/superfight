@@ -7,11 +7,25 @@ import JoinForm from './components/JoinForm.vue';
 import PlayerInfo from './components/PlayerInfo.vue';
 import { canVote, getWinners } from './state';
 
-const gamestate = useServerGameState();
 const playerName = ref('');
 const playerIndex = ref(-1);
 const optWhite = ref(0);
 const optBlack = ref(0);
+const optFighter = ref(0);
+
+const gamestate = useServerGameState(reset => {
+  switch (reset) {
+    case 'votes':
+      optFighter.value = 0;
+      optWhite.value = 0;
+      optBlack.value = 0;
+      break;
+    case 'game':
+      optWhite.value = 0;
+      optBlack.value = 0;
+      break;
+  }
+});
 
 const player = computed(() => gamestate.value.Players[playerIndex.value]);
 
@@ -50,7 +64,7 @@ async function vote(event: Event): Promise<void> {
   event.preventDefault();
   await callApi('PUT', '/api/vote', {
     player: playerIndex.value,
-    fighter: gamestate.value.Players[playerIndex.value].Vote,
+    fighter: optFighter.value,
   });
 }
 
@@ -113,7 +127,7 @@ async function resetGame(event: Event): Promise<void> {
         class="fighter"
       >
         <input
-          v-model.number="player.Vote"
+          v-model.number="optFighter"
           type="radio"
           name="fighter"
           :value="i + 1"

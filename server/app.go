@@ -45,10 +45,14 @@ func main() {
 	http.HandleFunc("/api/vote", func(w http.ResponseWriter, r *http.Request) {
 		player, _ := strconv.ParseUint(r.FormValue("player"), 10, 8)
 		vote, _ := strconv.ParseUint(r.FormValue("fighter"), 10, 8)
+		votesReset := false
 		{
 			mu.Lock()
 			defer mu.Unlock()
-			gamestate.Vote(byte(player), byte(vote))
+			votesReset = gamestate.Vote(byte(player), byte(vote))
+		}
+		if votesReset {
+			hub.SendEvent("reset", "votes")
 		}
 		hub.SendEvent("gameupdate", gamestate)
 		w.WriteHeader(http.StatusNoContent)
@@ -60,6 +64,7 @@ func main() {
 			defer mu.Unlock()
 			gamestate.Reset()
 		}
+		hub.SendEvent("reset", "game")
 		hub.SendEvent("gameupdate", gamestate)
 		w.WriteHeader(http.StatusNoContent)
 	})

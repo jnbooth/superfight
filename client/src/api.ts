@@ -44,7 +44,9 @@ export async function callApi<
     : (undefined as ApiResponse<Endpoints[M][P]>);
 }
 
-export function useServerGameState(): Ref<GameState> {
+export function useServerGameState(
+  onReset?: (kind: string) => void,
+): Ref<GameState> {
   let source: EventSource;
   let controller: AbortController;
   const gamestate = ref(defaultGameState);
@@ -62,6 +64,10 @@ export function useServerGameState(): Ref<GameState> {
     }
 
     onEvent('gameupdate', event => (gamestate.value = parseGame(event.data)));
+
+    if (onReset) {
+      onEvent('reset', event => onReset(event.data));
+    }
   });
 
   onUnmounted(() => {

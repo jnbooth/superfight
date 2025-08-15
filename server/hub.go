@@ -26,8 +26,13 @@ func NewHub(cards *Cards) *Hub {
 }
 
 func (h *Hub) SendEvent(event string, data any) {
-	dataJson, _ := json.Marshal(data)
-	h.broadcast <- fmt.Appendf(nil, "event: %s\ndata:%s\n\n", event, dataJson)
+	switch data.(type) {
+	case string:
+		h.broadcast <- fmt.Appendf(nil, "event: %s\ndata:%s\n\n", event, data)
+	default:
+		dataJson, _ := json.Marshal(data)
+		h.broadcast <- fmt.Appendf(nil, "event: %s\ndata:%s\n\n", event, dataJson)
+	}
 }
 
 func (h *Hub) Register(client chan []byte) {
@@ -44,8 +49,10 @@ func (h *Hub) Run() {
 		case client := <-h.register:
 			h.clients[client] = true
 		case client := <-h.unregister:
-			delete(h.clients, client)
-			close(client)
+			if _, ok := h.clients[client]; ok {
+				delete(h.clients, client)
+				close(client)
+			}
 		case message := <-h.broadcast:
 			for client := range h.clients {
 				select {

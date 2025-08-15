@@ -48,6 +48,8 @@ func (player *Player) Play(index byte, white int, black int) Fighter {
 func (player *Player) Reset() {
 	player.Vote = 0
 	player.Points = 0
+	player.Black = player.Black[:0]
+	player.White = player.White[:0]
 }
 
 type GameState struct {
@@ -142,12 +144,6 @@ func (state *GameState) SetHandSize(size byte) {
 	}
 }
 
-func (state *GameState) resetVotes() {
-	for i := range state.Players {
-		state.Players[i].Vote = 0
-	}
-}
-
 func (state *GameState) incrementNextUp() {
 	if state.nextUp == byte(len(state.Players)-1) {
 		state.nextUp = 0
@@ -164,17 +160,18 @@ func (state *GameState) advanceNextUp() {
 	state.draw(&state.Players[state.nextUp])
 }
 
-func (state *GameState) Vote(player byte, vote byte) {
+func (state *GameState) Vote(player byte, vote byte) bool {
 	state.Players[player].Vote = vote
 	newVotes := 0
 	oldVotes := 0
 	for i := range byte(len(state.Players)) {
-		if state.Fighters[0].Player == i || state.Fighters[1].Player == i {
+		if (len(state.Fighters) > 1 && state.Fighters[1].Player == i) ||
+			(len(state.Fighters) > 0 && state.Fighters[0].Player == i) {
 			continue
 		}
 		vote := state.Players[i].Vote
 		if vote == 0 {
-			return
+			return false
 		}
 		if vote == 1 {
 			oldVotes += 1
@@ -183,7 +180,9 @@ func (state *GameState) Vote(player byte, vote byte) {
 		}
 	}
 
-	state.resetVotes()
+	for i := range state.Players {
+		state.Players[i].Vote = 0
+	}
 
 	if oldVotes > newVotes {
 		state.Streak += 1
@@ -193,13 +192,8 @@ func (state *GameState) Vote(player byte, vote byte) {
 	} else {
 		state.Fighters[0].Tiebreak = state.white.Draw()
 		state.Fighters[1].Tiebreak = state.white.Draw()
-		for i := range state.Players {
-			state.Players[i].Vote = 0
-		}
-		return
+		return true
 	}
-
-	state.resetVotes()
 
 	winner := &state.Players[state.Fighters[0].Player]
 	winner.Points += 1
@@ -217,4 +211,5 @@ func (state *GameState) Vote(player byte, vote byte) {
 	}
 
 	state.advanceNextUp()
+	return true
 }
