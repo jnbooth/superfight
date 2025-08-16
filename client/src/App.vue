@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { callApi, useServerGameState } from './api';
 import RocketIcon from './assets/rocket.svg?component';
 import TrophyIcon from './assets/trophy.svg?component';
@@ -27,12 +27,21 @@ const gamestate = useServerGameState(reset => {
   }
 });
 
+onMounted(() => {
+  const storedName = localStorage.getItem('name');
+  if (storedName) {
+    playerName.value = storedName;
+  }
+});
+
 const player = computed(() => gamestate.value.Players[playerIndex.value]);
 
 async function join(event: Event): Promise<void> {
   event.preventDefault();
+  const name = playerName.value;
+  localStorage.setItem('name', name);
   const data = await callApi('PUT', '/api/join', {
-    name: playerName.value,
+    name,
   });
   playerIndex.value = data.playerIndex;
 }
