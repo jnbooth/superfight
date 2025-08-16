@@ -1,4 +1,5 @@
 body {
+  --active: #42a5f5;
   background: #e2e2e2 url(/assets/images/background.svg) repeat;
   color: #212121;
   font-family: Roboto, sans-serif;
@@ -27,6 +28,9 @@ input[type='radio'] {
   background-color: var(--bg);
   border: 5px solid var(--bg);
   border-radius: 13.5px;
+  box-shadow:
+    0.15em 0.15em 0.4em var(--shadow),
+    -0.05em -0.05em 0.4em var(--shadow);
   font-family:
     Helvetica Neue,
     Nimbus Sans L,
@@ -40,21 +44,21 @@ input:disabled ~ .card {
 
 .black {
   --bg: #000;
+  --shadow: #0000004d;
   color: #fff;
-  box-shadow:
-    0.15em 0.15em 0.4em rgba(0, 0, 0, 0.3),
-    -0.05em -0.05em 0.4em rgba(0, 0, 0, 0.3);
 }
 
 input:checked ~ .white {
-  border-color: #42a5f5;
+  border-color: var(--active);
 }
 
 .white {
   --bg: #fff;
-  box-shadow:
-    0.15em 0.15em 0.4em rgba(66, 165, 245, 0.3),
-    -0.05em -0.05em 0.4em rgba(66, 165, 245, 0.3);
+  --shadow: #42a5f54d;
+}
+
+input:disabled ~ .white {
+  --shadow: #9c9c9c4d;
 }
 
 input:checked ~ .black {
@@ -71,17 +75,21 @@ fieldset {
   padding: 0;
 }
 
+#sidebar,
+#victory {
+  box-shadow:
+    0px 2px 1px -1px #00000033,
+    0px 1px 1px 0px #00000024,
+    0px 1px 3px 0px #0000001f;
+}
+
 #sidebar {
-  background: white;
+  background-color: #fff;
   font-size: 1rem;
   width: 9rem;
   min-width: 9rem;
   padding: 0 1em 1em 1em;
   margin-right: 32px;
-  box-shadow:
-    rgba(0, 0, 0, 0.2) 0px 2px 1px -1px,
-    rgba(0, 0, 0, 0.14) 0px 1px 1px 0px,
-    rgba(0, 0, 0, 0.12) 0px 1px 3px 0px;
 }
 
 ol,
@@ -93,10 +101,6 @@ ul {
 
 #victory {
   margin: auto;
-  box-shadow:
-    rgba(0, 0, 0, 0.2) 0px 2px 1px -1px,
-    rgba(0, 0, 0, 0.14) 0px 1px 1px 0px,
-    rgba(0, 0, 0, 0.12) 0px 1px 3px 0px;
   background-color: #fff;
   border-radius: 4px;
   padding: 3em 5em;
@@ -121,14 +125,14 @@ ul {
 
 #join {
   margin: auto;
-  background: white;
+  background: #fff;
   height: max-content;
   max-width: 28em;
   padding: 2em 1em;
   box-shadow:
-    0 2px 1px -1px rgba(0, 0, 0, 0.2),
-    0 1px 1px 0 rgba(0, 0, 0, 0.14),
-    0 1px 3px 0 rgba(0, 0, 0, 0.12);
+    0 2px 1px -1px #00000033,
+    0 1px 1px 0 #00000024,
+    0 1px 3px 0 #0000001f;
   border-radius: 4px;
   width: inherit;
   display: flex;
@@ -138,25 +142,25 @@ ul {
 
 #join input {
   appearance: none;
-  background-color: rgb(245, 245, 245);
+  background-color: #f5f5f5;
   border-top-left-radius: 4px;
   border-top-right-radius: 4px;
-  color: rgb(33, 33, 33);
+  color: #212121;
   height: 56px;
   padding: 0 1em;
   font-size: 1rem;
   border-color: transparent;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.4);
+  border-bottom: 1px solid #00000066;
   outline: none;
 }
 
 #join input:focus {
-  border-bottom-color: #42a5f5;
-  caret-color: #42a5f5;
+  border-bottom-color: var(--active);
+  caret-color: var(--active);
 }
 
 #join input:focus::placeholder {
-  color: #42a5f5;
+  color: var(--active);
 }
 
 #settings {
@@ -176,12 +180,12 @@ button {
   margin-left: auto;
   appearance: none;
   border: none;
-  background-color: rgb(66, 165, 245);
+  background-color: var(--active);
   box-shadow:
-    rgba(0, 0, 0, 0.2) 0px 2px 4px -1px,
-    rgba(0, 0, 0, 0.14) 0px 4px 5px 0px,
-    rgba(0, 0, 0, 0.12) 0px 1px 10px 0px;
-  color: rgb(33, 33, 33);
+    0px 2px 4px -1px #00000033,
+    0px 4px 5px 0px #00000024,
+    0px 1px 10px 0px #0000001f;
+  color: #212121;
   cursor: pointer;
   height: 36px;
   padding: 0 1em;
@@ -195,7 +199,7 @@ button {
 
 form:invalid button,
 button:disabled {
-  background-color: rgba(224, 224, 224);
+  background-color: #e0e0e0;
   cursor: unset;
 }
 
