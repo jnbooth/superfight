@@ -6,40 +6,36 @@ import (
 )
 
 type Hub struct {
-	messagePrefix []byte
-	messageSuffix []byte
-	broadcast     chan []byte
-	clients       map[chan []byte]bool
-	register      chan chan []byte
-	unregister    chan chan []byte
+	broadcast  chan []byte
+	clients    map[*Client]bool
+	register   chan *Client
+	unregister chan *Client
 }
 
 func NewHub(cards *Cards) *Hub {
 	return &Hub{
-		messagePrefix: []byte("event: gameupdate\ndata:"),
-		messageSuffix: []byte("\n\n"),
-		broadcast:     make(chan []byte),
-		clients:       make(map[chan []byte]bool),
-		register:      make(chan chan []byte),
-		unregister:    make(chan chan []byte),
+		broadcast:  make(chan []byte, 10),
+		clients:    make(map[*Client]bool),
+		register:   make(chan *Client, 10),
+		unregister: make(chan *Client, 10),
 	}
 }
 
 func (h *Hub) SendEvent(event string, data any) {
 	switch data.(type) {
 	case string:
-		h.broadcast <- fmt.Appendf(nil, "event: %s\ndata:%s\n\n", event, data)
+		h.broadcast <- fmt.Appendf(nil, "event: %s\ndata: %s\n\n", event, data)
 	default:
 		dataJson, _ := json.Marshal(data)
-		h.broadcast <- fmt.Appendf(nil, "event: %s\ndata:%s\n\n", event, dataJson)
+		h.broadcast <- fmt.Appendf(nil, "event: %s\ndata: %s\n\n", event, dataJson)
 	}
 }
 
-func (h *Hub) Register(client chan []byte) {
+func (h *Hub) Register(client *Client) {
 	h.register <- client
 }
 
-func (h *Hub) Unregister(client chan []byte) {
+func (h *Hub) Unregister(client *Client) {
 	h.unregister <- client
 }
 
@@ -51,14 +47,15 @@ func (h *Hub) Run() {
 		case client := <-h.unregister:
 			if _, ok := h.clients[client]; ok {
 				delete(h.clients, client)
-				close(client)
+				close(client.messages)
 			}
 		case message := <-h.broadcast:
 			for client := range h.clients {
+				client.messages <- message
 				select {
-				case client <- message:
+				case client.messages <- message:
 				default:
-					close(client)
+					close(client.messages)
 					delete(h.clients, client)
 				}
 			}

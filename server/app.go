@@ -93,24 +93,10 @@ func main() {
 		w.Header().Set("Connection", "keep-alive")
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 
-		clientGone := r.Context().Done()
-		messages := make(chan []byte)
-		hub.Register(messages)
-		defer hub.Unregister(messages)
-
-		rc := http.NewResponseController(w)
-
-		for {
-			select {
-			case <-clientGone:
-				return
-			case event := <-messages:
-				w.Write(event)
-				if rc.Flush() != nil {
-					return
-				}
-			}
-		}
+		client := NewClient()
+		hub.Register(client)
+		defer hub.Unregister(client)
+		client.Run(w, r)
 	})
 
 	http.Handle("/", http.FileServer(http.Dir("../client/dist")))
