@@ -2,18 +2,17 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
+	"path"
 	"strconv"
 	"sync"
 )
 
-func main() {
-	cards := LoadCards()
+func SetupBackend(dir string) *Hub {
+	cards := LoadCards(dir)
 	gamestate := NewGameState(&cards)
 	mu := sync.Mutex{}
 	hub := NewHub(&cards)
-	go hub.Run()
 
 	http.HandleFunc("/api/join", func(w http.ResponseWriter, r *http.Request) {
 		playerIndex := -1
@@ -99,7 +98,9 @@ func main() {
 		client.Run(w, r)
 	})
 
-	http.Handle("/", http.FileServer(http.Dir("../client/dist")))
+	return hub
+}
 
-	log.Fatal(http.ListenAndServe(":8000", nil))
+func SetupFrontend(dir string) {
+	http.Handle("/", http.FileServer(http.Dir(path.Join(dir, "static"))))
 }

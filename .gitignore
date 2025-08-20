@@ -2,6 +2,9 @@
 cards/white.txt
 cards/black.txt
 
+# Static assets
+static/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

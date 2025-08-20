@@ -68,6 +68,8 @@ export function useServerGameState(
     if (onReset) {
       onEvent('reset', event => onReset(event.data));
     }
+
+    onEvent('shutdown', () => source.close());
   });
 
   onUnmounted(() => {

@@ -3,6 +3,7 @@ package main
 import (
 	"math/rand"
 	"os"
+	"path"
 	"strings"
 )
 
@@ -20,9 +21,9 @@ func loadCardsFromFile(filename string) []string {
 	return strings.Split(lines, "\n")
 }
 
-func LoadCards() Cards {
-	black := loadCardsFromFile("../cards/black.txt")
-	white := loadCardsFromFile("../cards/white.txt")
+func LoadCards(dir string) Cards {
+	black := loadCardsFromFile(path.Join(dir, "cards", "black.txt"))
+	white := loadCardsFromFile(path.Join(dir, "cards", "white.txt"))
 	return Cards{black: black, white: white}
 }
 

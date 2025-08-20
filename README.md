@@ -29,7 +29,6 @@ yarn build
 To build the server:
 
 ```bash
-cp server
 go build
 ```
 
@@ -38,6 +37,5 @@ go build
 To run the game, first build the client per above, then run:
 
 ```bash
-cd ../server
 go run .
 ```
