@@ -41,3 +41,5 @@ To run the game, first build the client per above, then run:
 ```bash
 go run .
 ```
+
+You can configure the port with `-p <PORT>` and the hostname with `-h <HOSTNAME>`.
