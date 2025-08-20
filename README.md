@@ -1,4 +1,6 @@
 # superfight
+<img width="611" height="412.5" alt="image" src="https://github.com/user-attachments/assets/61721973-381e-4756-a520-fa21b5845921" />
+
 
 An online game based on Pipework Studio's [SUPERFIGHT](https://store.steampowered.com/app/404770/SUPERFIGHT/), which was sadly discontinued.
 
