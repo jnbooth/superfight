@@ -1,23 +1,28 @@
-import { type Ref, onMounted, onUnmounted, ref } from 'vue';
-import { type GameState, defaultGameState } from './state';
+import { type Ref, onUnmounted, ref } from 'vue';
+import { type GameSettings, type GameState, defaultGameState } from './state';
 
 interface Endpoints {
+  GET: {
+    '/api/game': {
+      response: GameState;
+    };
+  };
+  PATCH: {
+    '/api/game': {
+      request: Partial<GameSettings>;
+    };
+  };
   PUT: {
     '/api/join': {
       request: { name: string };
       response: { playerIndex: number };
     };
     '/api/choose': {
-      request: { player: number; white: number; black: number };
+      request: { player: number; white: number; black: number[] };
     };
     '/api/reset': {};
     '/api/vote': {
       request: { player: number; fighter: number };
-    };
-  };
-  PATCH: {
-    '/api/game': {
-      request: { Goal?: number; HandSize?: number };
     };
   };
 }
@@ -25,57 +30,87 @@ interface Endpoints {
 type ApiRequest<T> = T extends { request: infer U } ? U : undefined;
 type ApiResponse<T> = T extends { response: infer U } ? U : undefined;
 
-export async function callApi<
-  M extends keyof Endpoints,
-  P extends keyof Endpoints[M] & string,
->(
-  method: M,
-  endpoint: P,
-  body?: ApiRequest<Endpoints[M][P]>,
-): Promise<ApiResponse<Endpoints[M][P]>> {
-  const res = await fetch(endpoint, {
-    method,
-    body: body
-      ? new URLSearchParams(body as Record<string, string>)
-      : undefined,
-  });
-  return res.status === 200
-    ? res.json()
-    : (undefined as ApiResponse<Endpoints[M][P]>);
+function parseBody(body: unknown): URLSearchParams | undefined {
+  if (!body) {
+    return;
+  }
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(body)) {
+    if (!Array.isArray(value)) {
+      params.set(key, value);
+      continue;
+    }
+    for (const val of value) {
+      params.append(key, val);
+    }
+  }
+  return params;
 }
 
-export function useServerGameState(
-  onReset?: (kind: string) => void,
-): Ref<GameState> {
-  let source: EventSource;
-  let controller: AbortController;
+function subscribe(
+  source: EventSource,
+  signal: AbortSignal,
+  listeners: { [name: string]: (event: MessageEvent) => void },
+) {
+  const opts = { signal };
+  for (const [name, listener] of Object.entries(listeners)) {
+    source.addEventListener(name, listener, opts);
+  }
+}
+
+export interface UseApi {
+  gamestate: Ref<GameState>;
+  callApi: <M extends keyof Endpoints, P extends keyof Endpoints[M] & string>(
+    method: M,
+    endpoint: P,
+    body?: ApiRequest<Endpoints[M][P]>,
+  ) => Promise<ApiResponse<Endpoints[M][P]>>;
+}
+
+export function useApi(onReset?: (kind: string) => void): UseApi {
+  const source = new EventSource('/api/events');
+  const controller = new AbortController();
+  const { signal } = controller;
   const gamestate = ref(defaultGameState);
-
-  onMounted(() => {
-    source = new EventSource('/api/events');
-    controller = new AbortController();
-    const signal = controller.signal;
-
-    function onEvent(
-      event: string,
-      listener: (event: MessageEvent) => void,
-    ): void {
-      source.addEventListener(event, listener, { signal });
-    }
-
-    onEvent('gameupdate', event => (gamestate.value = JSON.parse(event.data)));
-
-    if (onReset) {
-      onEvent('reset', event => onReset(event.data));
-    }
-
-    onEvent('shutdown', () => source.close());
-  });
 
   onUnmounted(() => {
     controller.abort();
     source.close();
   });
 
-  return gamestate;
+  subscribe(source, signal, {
+    gameupdate(event) {
+      gamestate.value = JSON.parse(event.data);
+    },
+    reset(event) {
+      onReset?.(event.data);
+    },
+    shutdown() {
+      source.close();
+    },
+  });
+
+  async function callApi<
+    M extends keyof Endpoints,
+    P extends keyof Endpoints[M] & string,
+  >(
+    method: M,
+    endpoint: P,
+    body?: ApiRequest<Endpoints[M][P]>,
+  ): Promise<ApiResponse<Endpoints[M][P]>> {
+    const res = await fetch(endpoint, {
+      method,
+      body: parseBody(body),
+      signal,
+    });
+    return res.status === 200
+      ? res.json()
+      : (undefined as ApiResponse<Endpoints[M][P]>);
+  }
+
+  callApi('GET', '/api/game', undefined)
+    .then(state => (gamestate.value = state))
+    .catch(console.error);
+
+  return { gamestate, callApi };
 }

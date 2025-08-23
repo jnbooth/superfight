@@ -1,21 +1,25 @@
 package main
 
 type GameSettings struct {
-	HandSize byte
-	Goal     byte
+	Goal          byte
+	FighterBlacks byte
+	HandWhites    byte
+	HandBlacks    byte
 }
 
 func DefaultGameSettings() GameSettings {
 	return GameSettings{
-		HandSize: 3,
-		Goal:     6,
+		Goal:          6,
+		FighterBlacks: 1,
+		HandWhites:    3,
+		HandBlacks:    3,
 	}
 }
 
 type Fighter struct {
 	Player   byte
 	White    string
-	Black    string
+	Black    []string
 	Tiebreak string
 }
 
@@ -27,18 +31,26 @@ type Player struct {
 	Black  []string
 }
 
-func (player *Player) Draw(n byte, white *Deck, black *Deck) {
+func (player *Player) DrawWhite(n byte, deck *Deck) {
 	for range n {
-		player.White = append(player.White, white.Draw())
-		player.Black = append(player.Black, black.Draw())
+		player.White = append(player.White, deck.Draw())
 	}
 }
 
-func (player *Player) Play(index byte, white int, black int) Fighter {
+func (player *Player) DrawBlack(n byte, deck *Deck) {
+	for range n {
+		player.Black = append(player.Black, deck.Draw())
+	}
+}
+
+func (player *Player) Play(index byte, white byte, black []byte) Fighter {
 	fighter := Fighter{
 		Player: index,
 		White:  player.White[white-1],
-		Black:  player.Black[black-1],
+		Black:  make([]string, 0, len(black)),
+	}
+	for _, choice := range black {
+		fighter.Black = append(fighter.Black, player.Black[choice-1])
 	}
 	player.White = player.White[:0]
 	player.Black = player.Black[:0]
@@ -73,12 +85,13 @@ func NewGameState(cards *Cards) *GameState {
 	}
 }
 
-func (state *GameState) Choose(player byte, white int, black int) {
+func (state *GameState) Choose(player byte, white byte, black []byte) {
 	state.Fighters = append(state.Fighters, state.Players[player].Play(player, white, black))
 }
 
 func (state *GameState) draw(player *Player) {
-	player.Draw(state.Settings.HandSize, &state.white, &state.black)
+	player.DrawWhite(state.Settings.HandWhites, &state.white)
+	player.DrawBlack(state.Settings.HandBlacks, &state.black)
 }
 
 func (state *GameState) Reset() {
@@ -105,8 +118,8 @@ func (state *GameState) AddPlayer(name string) int {
 	playerIndex := len(state.Players)
 	state.Players = append(state.Players, Player{
 		Name:  name,
-		White: make([]string, 0, state.Settings.HandSize),
-		Black: make([]string, 0, state.Settings.HandSize),
+		White: make([]string, 0, state.Settings.HandBlacks),
+		Black: make([]string, 0, state.Settings.HandBlacks),
 	})
 	if playerIndex < 2 {
 		state.advanceNextUp()
@@ -125,21 +138,48 @@ func (state *GameState) SetGoal(goal byte) {
 	}
 }
 
-func (state *GameState) SetHandSize(size byte) {
-	state.Settings.HandSize = size
+func (state *GameState) SetFighterBlacks(count byte) {
+	state.Settings.FighterBlacks = count
+	countI := int(count)
+	for i := range state.Fighters {
+		if len(state.Fighters[i].Black) > countI {
+			state.Fighters[i].Black = state.Fighters[i].Black[:count]
+		}
+	}
+}
+
+func (state *GameState) SetHandBlacks(count byte) {
+	state.Settings.HandBlacks = count
+	for i := range state.Players {
+		player := &state.Players[i]
+		hand := byte(len(player.Black))
+		if hand == 0 {
+			continue
+		}
+		if hand < count {
+			player.DrawBlack(count-hand, &state.black)
+			continue
+		}
+		if hand > count {
+			player.Black = player.Black[:count]
+		}
+	}
+}
+
+func (state *GameState) SetHandWhites(count byte) {
+	state.Settings.HandWhites = count
 	for i := range state.Players {
 		player := &state.Players[i]
 		hand := byte(len(player.White))
 		if hand == 0 {
 			continue
 		}
-		if hand < size {
-			player.Draw(size-hand, &state.white, &state.black)
+		if hand < count {
+			player.DrawWhite(count-hand, &state.white)
 			continue
 		}
-		if hand > size {
-			player.White = player.White[:size]
-			player.Black = player.Black[:size]
+		if hand > count {
+			player.White = player.White[:count]
 		}
 	}
 }

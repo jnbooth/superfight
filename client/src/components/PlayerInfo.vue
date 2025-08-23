@@ -1,8 +1,14 @@
 <script setup lang="ts">
+import type { LiHTMLAttributes } from 'vue';
 import ClockIcon from '../assets/clock.svg?component';
 import StarIcon from '../assets/star.svg?component';
 
-defineProps<{ waiting: boolean; points: number; you: boolean }>();
+interface Props extends /* @vue-ignore */ LiHTMLAttributes {
+  waiting: boolean;
+  points: number;
+  you: boolean;
+}
+defineProps<Props>();
 </script>
 
 <template>

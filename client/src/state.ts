@@ -1,7 +1,7 @@
 export interface Fighter {
   Player: number;
   White: string;
-  Black: string;
+  Black: string[];
   Tiebreak: string;
 }
 
@@ -15,7 +15,9 @@ export interface Player {
 
 export interface GameSettings {
   Goal: number;
-  HandSize: number;
+  FighterBlacks: number;
+  HandWhites: number;
+  HandBlacks: number;
 }
 
 export interface GameState {
@@ -30,7 +32,7 @@ export const defaultGameState: GameState = {
   Done: false,
   Players: [],
   Fighters: [],
-  Settings: { Goal: 3, HandSize: 6 },
+  Settings: { Goal: 6, FighterBlacks: 1, HandWhites: 3, HandBlacks: 3 },
   Streak: 0,
 };
 

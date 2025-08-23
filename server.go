@@ -1,10 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"path"
-	"strconv"
 	"sync"
 )
 
@@ -15,11 +15,17 @@ func SetupBackend(dir string) *Hub {
 	hub := NewHub(&cards)
 
 	http.HandleFunc("/api/join", func(w http.ResponseWriter, r *http.Request) {
+		r.ParseForm()
+		name, err := FormString(r, "name")
+		if err != nil {
+			WriteInvalid(w, err)
+			return
+		}
 		playerIndex := -1
 		{
 			mu.Lock()
 			defer mu.Unlock()
-			playerIndex = gamestate.AddPlayer(r.FormValue("name"))
+			playerIndex = gamestate.AddPlayer(name)
 		}
 		hub.SendEvent("gameupdate", gamestate)
 		w.Header().Set("Content-Type", "application/json")
@@ -28,26 +34,48 @@ func SetupBackend(dir string) *Hub {
 	})
 
 	http.HandleFunc("/api/choose", func(w http.ResponseWriter, r *http.Request) {
-		player, _ := strconv.ParseUint(r.FormValue("player"), 10, 8)
-		white, _ := strconv.ParseInt(r.FormValue("white"), 10, 0)
-		black, _ := strconv.ParseInt(r.FormValue("black"), 10, 0)
+		r.ParseForm()
+		player, err := FormByte(r, "player", 0, byte(len(gamestate.Players)-1))
+		if err != nil {
+			WriteInvalid(w, err)
+			return
+		}
+		white, err := FormByte(r, "white", 1, gamestate.Settings.HandWhites)
+		if err != nil {
+			WriteInvalid(w, err)
+			return
+		}
+		black, err := FormBytes(r, "black", 1, gamestate.Settings.HandBlacks, int(gamestate.Settings.FighterBlacks))
+		if err != nil {
+			WriteInvalid(w, err)
+			return
+		}
 		{
 			mu.Lock()
 			defer mu.Unlock()
-			gamestate.Choose(byte(player), int(white), int(black))
+			gamestate.Choose(player, white, black)
 		}
 		hub.SendEvent("gameupdate", gamestate)
 		w.WriteHeader(http.StatusNoContent)
 	})
 
 	http.HandleFunc("/api/vote", func(w http.ResponseWriter, r *http.Request) {
-		player, _ := strconv.ParseUint(r.FormValue("player"), 10, 8)
-		vote, _ := strconv.ParseUint(r.FormValue("fighter"), 10, 8)
+		r.ParseForm()
+		player, err := FormByte(r, "player", 0, byte(len(gamestate.Players)-1))
+		if err != nil {
+			WriteInvalid(w, err)
+			return
+		}
+		vote, err := FormByte(r, "fighter", 1, 2)
+		if err != nil {
+			WriteInvalid(w, err)
+			return
+		}
 		votesReset := false
 		{
 			mu.Lock()
 			defer mu.Unlock()
-			votesReset = gamestate.Vote(byte(player), byte(vote))
+			votesReset = gamestate.Vote(player, vote)
 		}
 		if votesReset {
 			hub.SendEvent("reset", "votes")
@@ -68,18 +96,48 @@ func SetupBackend(dir string) *Hub {
 	})
 
 	http.HandleFunc("/api/game", func(w http.ResponseWriter, r *http.Request) {
-		goal := r.FormValue("Goal")
-		handSize := r.FormValue("HandSize")
+		if r.Method == http.MethodGet {
+			data, _ := json.Marshal(gamestate)
+			w.WriteHeader(http.StatusOK)
+			w.Header().Set("Content-Type", "application/json")
+			w.Write(data)
+			return
+		}
+		r.ParseForm()
 		{
 			mu.Lock()
 			defer mu.Unlock()
-			if goal != "" {
-				goal, _ := strconv.ParseUint(goal, 10, 8)
-				gamestate.SetGoal(byte(goal))
+			if len(r.Form["Goal"]) > 0 {
+				goal, err := FormByte(r, "Goal", 1, 255)
+				if err != nil {
+					WriteInvalid(w, err)
+					return
+				}
+				gamestate.SetGoal(goal)
 			}
-			if handSize != "" {
-				handSize, _ := strconv.ParseUint(handSize, 10, 8)
-				gamestate.SetHandSize(byte(handSize))
+			if len(r.Form["FighterBlacks"]) > 0 {
+				fighterBlacks, err := FormByte(r, "FighterBlacks", 1, 255)
+				if err != nil {
+					WriteInvalid(w, err)
+					return
+				}
+				gamestate.SetFighterBlacks(fighterBlacks)
+			}
+			if len(r.Form["HandBlacks"]) > 0 {
+				handBlacks, err := FormByte(r, "HandBlacks", 1, 255)
+				if err != nil {
+					WriteInvalid(w, err)
+					return
+				}
+				gamestate.SetHandBlacks(handBlacks)
+			}
+			if len(r.Form["HandWhites"]) > 0 {
+				handWhites, err := FormByte(r, "HandWhites", 1, 255)
+				if err != nil {
+					WriteInvalid(w, err)
+					return
+				}
+				gamestate.SetHandWhites(handWhites)
 			}
 		}
 		hub.SendEvent("gameupdate", gamestate)
