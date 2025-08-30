@@ -68,20 +68,20 @@ type GameState struct {
 	Done     bool
 	Players  []Player
 	Fighters []Fighter
-	Settings GameSettings
 	Streak   byte
 	nextUp   byte
 	white    Deck
 	black    Deck
+	settings GameSettings
 }
 
 func NewGameState(cards *Cards) *GameState {
 	return &GameState{
 		Players:  make([]Player, 0, 6),
 		Fighters: make([]Fighter, 0, 2),
-		Settings: DefaultGameSettings(),
 		white:    NewDeck(cards.white),
 		black:    NewDeck(cards.black),
+		settings: DefaultGameSettings(),
 	}
 }
 
@@ -90,8 +90,8 @@ func (state *GameState) Choose(player byte, white byte, black []byte) {
 }
 
 func (state *GameState) draw(player *Player) {
-	player.DrawWhite(state.Settings.HandWhites, &state.white)
-	player.DrawBlack(state.Settings.HandBlacks, &state.black)
+	player.DrawWhite(state.settings.HandWhites, &state.white)
+	player.DrawBlack(state.settings.HandBlacks, &state.black)
 }
 
 func (state *GameState) Reset() {
@@ -118,8 +118,8 @@ func (state *GameState) AddPlayer(name string) int {
 	playerIndex := len(state.Players)
 	state.Players = append(state.Players, Player{
 		Name:  name,
-		White: make([]string, 0, state.Settings.HandBlacks),
-		Black: make([]string, 0, state.Settings.HandBlacks),
+		White: make([]string, 0, state.settings.HandBlacks),
+		Black: make([]string, 0, state.settings.HandBlacks),
 	})
 	if playerIndex < 2 {
 		state.advanceNextUp()
@@ -128,7 +128,7 @@ func (state *GameState) AddPlayer(name string) int {
 }
 
 func (state *GameState) SetGoal(goal byte) {
-	state.Settings.Goal = goal
+	state.settings.Goal = goal
 	state.Done = false
 	for i := range state.Players {
 		if state.Players[i].Points >= goal {
@@ -139,7 +139,7 @@ func (state *GameState) SetGoal(goal byte) {
 }
 
 func (state *GameState) SetFighterBlacks(count byte) {
-	state.Settings.FighterBlacks = count
+	state.settings.FighterBlacks = count
 	countI := int(count)
 	for i := range state.Fighters {
 		if len(state.Fighters[i].Black) > countI {
@@ -149,7 +149,7 @@ func (state *GameState) SetFighterBlacks(count byte) {
 }
 
 func (state *GameState) SetHandBlacks(count byte) {
-	state.Settings.HandBlacks = count
+	state.settings.HandBlacks = count
 	for i := range state.Players {
 		player := &state.Players[i]
 		hand := byte(len(player.Black))
@@ -167,7 +167,7 @@ func (state *GameState) SetHandBlacks(count byte) {
 }
 
 func (state *GameState) SetHandWhites(count byte) {
-	state.Settings.HandWhites = count
+	state.settings.HandWhites = count
 	for i := range state.Players {
 		player := &state.Players[i]
 		hand := byte(len(player.White))
@@ -237,7 +237,7 @@ func (state *GameState) Vote(player byte, vote byte) bool {
 
 	winner := &state.Players[state.Fighters[0].Player]
 	winner.Points += 1
-	if winner.Points >= state.Settings.Goal {
+	if winner.Points >= state.settings.Goal {
 		state.Done = true
 	}
 

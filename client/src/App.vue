@@ -3,6 +3,9 @@ import { computed, ref } from 'vue';
 import { useApi } from './api';
 import RocketIcon from './assets/rocket.svg?component';
 import TrophyIcon from './assets/trophy.svg?component';
+import CardMultiSelect from './components/CardMultiSelect.vue';
+import CardSelect from './components/CardSelect.vue';
+import FighterSelect from './components/FighterSelect.vue';
 import GameSettingsForm from './components/GameSettingsForm.vue';
 import JoinForm from './components/JoinForm.vue';
 import PlayerInfo from './components/PlayerInfo.vue';
@@ -15,7 +18,8 @@ const optBlack = ref(0);
 const optBlacks = ref<number[]>([]);
 const optFighter = ref(0);
 
-const { callApi, gamestate } = useApi(reset => {
+const { callApi, gamestate, settings } = useApi(reset => {
+  console.log('resetting', reset);
   switch (reset) {
     case 'game':
       optWhite.value = 0;
@@ -32,7 +36,7 @@ const disableSubmit = computed(() => {
   if (!optWhite.value) {
     return true;
   }
-  const fighterBlacks = gamestate.value.Settings.FighterBlacks;
+  const fighterBlacks = settings.value.FighterBlacks;
   const black = optBlack.value;
   const blacks = optBlacks.value;
   if (fighterBlacks === 1) {
@@ -51,7 +55,7 @@ function join(): void {
 }
 
 function choose(): void {
-  const isSingleChoice = gamestate.value.Settings.FighterBlacks === 1;
+  const isSingleChoice = settings.value.FighterBlacks === 1;
 
   callApi('PUT', '/api/choose', {
     player: playerIndex.value,
@@ -63,8 +67,8 @@ function choose(): void {
 function patchGameSettings(event: Event): void {
   const setting = (event.target as HTMLInputElement).name as keyof GameSettings;
 
-  callApi('PATCH', '/api/game', {
-    [setting]: gamestate.value.Settings[setting],
+  callApi('PATCH', '/api/game/settings', {
+    [setting]: settings.value[setting],
   }).catch(console.error);
 }
 
@@ -97,75 +101,48 @@ function resetGame(): void {
     <span class="term">Settings</span>
     <GameSettingsForm
       id="settings"
-      v-model="gamestate.Settings"
+      v-model="settings"
       @change.prevent="patchGameSettings"
     />
   </div>
   <ul v-if="gamestate.Done" id="victory">
     <TrophyIcon />
-    <li v-for="winner in getWinners(gamestate)" :key="winner">{{ winner }}</li>
+    <li v-for="winner in getWinners(gamestate, settings)" :key="winner">
+      {{ winner }}
+    </li>
     <button @click.prevent="resetGame">Start New Game</button>
   </ul>
   <div v-else-if="!!player" id="game">
-    <form
+    <FighterSelect
       v-if="!!gamestate.Streak || gamestate.Fighters.length === 2"
       id="fighters"
+      v-model="optFighter"
+      :fighters="gamestate.Fighters"
+      :disabled="!canVote(gamestate, playerIndex)"
       @change.prevent="vote"
-    >
-      <label
-        v-for="({ Black, White, Tiebreak }, i) in gamestate.Fighters"
-        :key="i"
-        class="fighter"
-      >
-        <input
-          v-model.number="optFighter"
-          type="radio"
-          name="fighter"
-          :value="i + 1"
-          :disabled="!canVote(gamestate, playerIndex)"
-        />
-        <span class="card white">{{ White }}</span>
-        <span v-for="text in Black" :key="text" class="card black">
-          {{ text }}
-        </span>
-        <span v-if="!!Tiebreak" class="card white">{{ Tiebreak }}</span>
-      </label>
-    </form>
+    />
     <form v-if="!!player.White.length" id="hand" @submit.prevent="choose">
       <button type="submit" :disabled="disableSubmit">
         <RocketIcon /><span>Submit</span>
       </button>
       <div>
-        <fieldset>
-          <label v-for="(text, i) in player.White" :key="i">
-            <input
-              v-model.number="optWhite"
-              type="radio"
-              name="white"
-              :value="i + 1"
-            />
-            <span class="card white">{{ text }}</span>
-          </label>
-        </fieldset>
-        <fieldset>
-          <label v-for="(text, i) in player.Black" :key="i">
-            <input
-              v-if="gamestate.Settings.FighterBlacks > 1"
-              v-model.number="optBlacks"
-              type="checkbox"
-              name="black"
-              :value="i + 1"
-            />
-            <input
-              v-else
-              v-model.number="optBlack"
-              type="radio"
-              name="black"
-              :value="i + 1"
-            />
-            <span class="card black">{{ text }}</span>
-          </label>
-        </fieldset>
+        <CardSelect
+          v-model.number="optWhite"
+          :cards="player.White"
+          name="white"
+        />
+        <CardMultiSelect
+          v-if="settings.FighterBlacks > 1"
+          v-model="optBlacks"
+          :cards="player.Black"
+          name="black"
+        />
+        <CardSelect
+          v-else
+          v-model="optBlack"
+          :cards="player.Black"
+          name="black"
+        />
       </div>
     </form>
   </div>

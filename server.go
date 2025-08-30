@@ -27,7 +27,7 @@ func SetupBackend(dir string) *Hub {
 			defer mu.Unlock()
 			playerIndex = gamestate.AddPlayer(name)
 		}
-		hub.SendEvent("gameupdate", gamestate)
+		hub.SendEvent("update", gamestate)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprintf(w, "{\"playerIndex\": %v}\n", playerIndex)
@@ -40,12 +40,12 @@ func SetupBackend(dir string) *Hub {
 			WriteInvalid(w, err)
 			return
 		}
-		white, err := FormByte(r, "white", 1, gamestate.Settings.HandWhites)
+		white, err := FormByte(r, "white", 1, gamestate.settings.HandWhites)
 		if err != nil {
 			WriteInvalid(w, err)
 			return
 		}
-		black, err := FormBytes(r, "black", 1, gamestate.Settings.HandBlacks, int(gamestate.Settings.FighterBlacks))
+		black, err := FormBytes(r, "black", 1, gamestate.settings.HandBlacks, int(gamestate.settings.FighterBlacks))
 		if err != nil {
 			WriteInvalid(w, err)
 			return
@@ -55,7 +55,7 @@ func SetupBackend(dir string) *Hub {
 			defer mu.Unlock()
 			gamestate.Choose(player, white, black)
 		}
-		hub.SendEvent("gameupdate", gamestate)
+		hub.SendEvent("update", gamestate)
 		w.WriteHeader(http.StatusNoContent)
 	})
 
@@ -80,7 +80,7 @@ func SetupBackend(dir string) *Hub {
 		if votesReset {
 			hub.SendEvent("reset", "votes")
 		}
-		hub.SendEvent("gameupdate", gamestate)
+		hub.SendEvent("update", gamestate)
 		w.WriteHeader(http.StatusNoContent)
 	})
 
@@ -91,18 +91,26 @@ func SetupBackend(dir string) *Hub {
 			gamestate.Reset()
 		}
 		hub.SendEvent("reset", "game")
-		hub.SendEvent("gameupdate", gamestate)
+		hub.SendEvent("update", gamestate)
 		w.WriteHeader(http.StatusNoContent)
 	})
 
 	http.HandleFunc("/api/game", func(w http.ResponseWriter, r *http.Request) {
+		data, _ := json.Marshal(gamestate)
+		w.WriteHeader(http.StatusOK)
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(data)
+	})
+
+	http.HandleFunc("/api/game/settings", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet {
-			data, _ := json.Marshal(gamestate)
+			data, _ := json.Marshal(gamestate.settings)
 			w.WriteHeader(http.StatusOK)
 			w.Header().Set("Content-Type", "application/json")
 			w.Write(data)
 			return
 		}
+		updated := false
 		r.ParseForm()
 		{
 			mu.Lock()
@@ -114,6 +122,7 @@ func SetupBackend(dir string) *Hub {
 					return
 				}
 				gamestate.SetGoal(goal)
+				updated = true
 			}
 			if len(r.Form["FighterBlacks"]) > 0 {
 				fighterBlacks, err := FormByte(r, "FighterBlacks", 1, 255)
@@ -122,6 +131,7 @@ func SetupBackend(dir string) *Hub {
 					return
 				}
 				gamestate.SetFighterBlacks(fighterBlacks)
+				updated = true
 			}
 			if len(r.Form["HandBlacks"]) > 0 {
 				handBlacks, err := FormByte(r, "HandBlacks", 1, 255)
@@ -130,6 +140,7 @@ func SetupBackend(dir string) *Hub {
 					return
 				}
 				gamestate.SetHandBlacks(handBlacks)
+				updated = true
 			}
 			if len(r.Form["HandWhites"]) > 0 {
 				handWhites, err := FormByte(r, "HandWhites", 1, 255)
@@ -138,9 +149,12 @@ func SetupBackend(dir string) *Hub {
 					return
 				}
 				gamestate.SetHandWhites(handWhites)
+				updated = true
 			}
 		}
-		hub.SendEvent("gameupdate", gamestate)
+		if updated {
+			hub.SendEvent("settings", gamestate.settings)
+		}
 		w.WriteHeader(http.StatusNoContent)
 	})
 

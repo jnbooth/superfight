@@ -5,7 +5,7 @@ import RocketIcon from '../assets/rocket.svg?component';
 interface Props extends /* @vue-ignore */ FormHTMLAttributes {}
 defineProps<Props>();
 
-const model = defineModel<string>({ required: true });
+const model = defineModel<string>();
 </script>
 
 <template>

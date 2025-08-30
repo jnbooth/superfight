@@ -4,6 +4,7 @@ import type { GameSettings } from '../state';
 
 interface Props extends /* @vue-ignore */ FormHTMLAttributes {}
 defineProps<Props>();
+
 const model = defineModel<GameSettings>({ required: true });
 </script>
 

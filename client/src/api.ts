@@ -1,14 +1,22 @@
 import { type Ref, onUnmounted, ref } from 'vue';
-import { type GameSettings, type GameState, defaultGameState } from './state';
+import {
+  type GameSettings,
+  type GameState,
+  defaultGameSettings,
+  defaultGameState,
+} from './state';
 
 interface Endpoints {
   GET: {
     '/api/game': {
       response: GameState;
     };
+    '/api/game/settings': {
+      response: GameSettings;
+    };
   };
   PATCH: {
-    '/api/game': {
+    '/api/game/settings': {
       request: Partial<GameSettings>;
     };
   };
@@ -60,6 +68,8 @@ function subscribe(
 
 export interface UseApi {
   gamestate: Ref<GameState>;
+  settings: Ref<GameSettings>;
+
   callApi: <M extends keyof Endpoints, P extends keyof Endpoints[M] & string>(
     method: M,
     endpoint: P,
@@ -72,6 +82,7 @@ export function useApi(onReset?: (kind: string) => void): UseApi {
   const controller = new AbortController();
   const { signal } = controller;
   const gamestate = ref(defaultGameState);
+  const settings = ref(defaultGameSettings);
 
   onUnmounted(() => {
     controller.abort();
@@ -79,11 +90,14 @@ export function useApi(onReset?: (kind: string) => void): UseApi {
   });
 
   subscribe(source, signal, {
-    gameupdate(event) {
+    update(event) {
       gamestate.value = JSON.parse(event.data);
     },
     reset(event) {
       onReset?.(event.data);
+    },
+    settings(event) {
+      settings.value = JSON.parse(event.data);
     },
     shutdown() {
       source.close();
@@ -112,5 +126,9 @@ export function useApi(onReset?: (kind: string) => void): UseApi {
     .then(state => (gamestate.value = state))
     .catch(console.error);
 
-  return { gamestate, callApi };
+  callApi('GET', '/api/game/settings', undefined)
+    .then(state => (settings.value = state))
+    .catch(console.error);
+
+  return { gamestate, callApi, settings };
 }
