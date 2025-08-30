@@ -19,13 +19,12 @@ const optBlacks = ref<number[]>([]);
 const optFighter = ref(0);
 
 const { callApi, gamestate, settings } = useApi(reset => {
-  console.log('resetting', reset);
   switch (reset) {
     case 'game':
+    case 'votes': //fallthrough
       optWhite.value = 0;
       optBlack.value = 0;
       optBlacks.value.length = 0;
-    case 'votes': //fallthrough
       optFighter.value = 0;
   }
 });
