@@ -44,5 +44,9 @@ const model = defineModel<GameSettings>({ required: true });
         max="255"
       />
     </label>
+    <label>
+      <span>Random Black</span>
+      <input v-model="model.RandomBlack" type="checkbox" name="RandomBlack" />
+    </label>
   </form>
 </template>

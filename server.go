@@ -110,6 +110,7 @@ func SetupBackend(dir string) *Hub {
 			w.Write(data)
 			return
 		}
+		dirty := false
 		updated := false
 		r.ParseForm()
 		{
@@ -121,8 +122,8 @@ func SetupBackend(dir string) *Hub {
 					WriteInvalid(w, err)
 					return
 				}
-				gamestate.SetGoal(goal)
-				updated = true
+				updated = gamestate.SetGoal(goal) || updated
+				dirty = true
 			}
 			if len(r.Form["FighterBlacks"]) > 0 {
 				fighterBlacks, err := FormByte(r, "FighterBlacks", 1, 255)
@@ -130,8 +131,8 @@ func SetupBackend(dir string) *Hub {
 					WriteInvalid(w, err)
 					return
 				}
-				gamestate.SetFighterBlacks(fighterBlacks)
-				updated = true
+				updated = gamestate.SetFighterBlacks(fighterBlacks) || updated
+				dirty = true
 			}
 			if len(r.Form["HandBlacks"]) > 0 {
 				handBlacks, err := FormByte(r, "HandBlacks", 1, 255)
@@ -139,8 +140,8 @@ func SetupBackend(dir string) *Hub {
 					WriteInvalid(w, err)
 					return
 				}
-				gamestate.SetHandBlacks(handBlacks)
-				updated = true
+				updated = gamestate.SetHandBlacks(handBlacks) || updated
+				dirty = true
 			}
 			if len(r.Form["HandWhites"]) > 0 {
 				handWhites, err := FormByte(r, "HandWhites", 1, 255)
@@ -148,12 +149,24 @@ func SetupBackend(dir string) *Hub {
 					WriteInvalid(w, err)
 					return
 				}
-				gamestate.SetHandWhites(handWhites)
-				updated = true
+				updated = gamestate.SetHandWhites(handWhites) || updated
+				dirty = true
+			}
+			if len(r.Form["RandomBlack"]) > 0 {
+				randomBlack, err := FormBool(r, "RandomBlack")
+				if err != nil {
+					WriteInvalid(w, err)
+					return
+				}
+				updated = gamestate.SetRandomBlack(randomBlack) || updated
+				dirty = true
 			}
 		}
-		if updated {
+		if dirty {
 			hub.SendEvent("settings", gamestate.settings)
+		}
+		if updated {
+			hub.SendEvent("update", gamestate)
 		}
 		w.WriteHeader(http.StatusNoContent)
 	})

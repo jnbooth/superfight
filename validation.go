@@ -78,6 +78,20 @@ func FormByte(r *http.Request, key string, min byte, max byte) (value byte, err 
 	return value, nil
 }
 
+func FormBool(r *http.Request, key string) (value bool, err []byte) {
+	val, err := FormString(r, key)
+	if err != nil {
+		return false, nil
+	}
+	if val == "true" {
+		return true, nil
+	}
+	if val == "false" {
+		return false, nil
+	}
+	return false, fmt.Append(nil, key, ": should be true or false")
+}
+
 func FormBytes(r *http.Request, key string, min byte, max byte, count int) (values []byte, err []byte) {
 	vals, err := FormStrings(r, key, count)
 	if err != nil {

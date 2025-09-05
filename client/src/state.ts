@@ -18,6 +18,7 @@ export interface GameSettings {
   FighterBlacks: number;
   HandWhites: number;
   HandBlacks: number;
+  RandomBlack: boolean;
 }
 
 export interface GameState {
@@ -39,6 +40,7 @@ export const defaultGameSettings: GameSettings = {
   FighterBlacks: 1,
   HandWhites: 3,
   HandBlacks: 3,
+  RandomBlack: false,
 };
 
 export function canVote(

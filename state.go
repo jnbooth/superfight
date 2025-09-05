@@ -5,6 +5,7 @@ type GameSettings struct {
 	FighterBlacks byte
 	HandWhites    byte
 	HandBlacks    byte
+	RandomBlack   bool
 }
 
 func DefaultGameSettings() GameSettings {
@@ -13,6 +14,7 @@ func DefaultGameSettings() GameSettings {
 		FighterBlacks: 1,
 		HandWhites:    3,
 		HandBlacks:    3,
+		RandomBlack:   false,
 	}
 }
 
@@ -47,7 +49,7 @@ func (player *Player) Play(index byte, white byte, black []byte) Fighter {
 	fighter := Fighter{
 		Player: index,
 		White:  player.White[white-1],
-		Black:  make([]string, 0, len(black)),
+		Black:  make([]string, 0, len(black)+1),
 	}
 	for _, choice := range black {
 		fighter.Black = append(fighter.Black, player.Black[choice-1])
@@ -86,7 +88,11 @@ func NewGameState(cards *Cards) *GameState {
 }
 
 func (state *GameState) Choose(player byte, white byte, black []byte) {
-	state.Fighters = append(state.Fighters, state.Players[player].Play(player, white, black))
+	fighter := state.Players[player].Play(player, white, black)
+	if state.settings.RandomBlack {
+		fighter.Black = append(fighter.Black, state.black.Draw())
+	}
+	state.Fighters = append(state.Fighters, fighter)
 }
 
 func (state *GameState) draw(player *Player) {
@@ -127,28 +133,33 @@ func (state *GameState) AddPlayer(name string) int {
 	return playerIndex
 }
 
-func (state *GameState) SetGoal(goal byte) {
+func (state *GameState) SetGoal(goal byte) bool {
 	state.settings.Goal = goal
 	state.Done = false
 	for i := range state.Players {
 		if state.Players[i].Points >= goal {
 			state.Done = true
-			return
+			return true
 		}
 	}
+	return false
 }
 
-func (state *GameState) SetFighterBlacks(count byte) {
+func (state *GameState) SetFighterBlacks(count byte) bool {
+	updated := false
 	state.settings.FighterBlacks = count
 	countI := int(count)
 	for i := range state.Fighters {
 		if len(state.Fighters[i].Black) > countI {
 			state.Fighters[i].Black = state.Fighters[i].Black[:count]
+			updated = true
 		}
 	}
+	return updated
 }
 
-func (state *GameState) SetHandBlacks(count byte) {
+func (state *GameState) SetHandBlacks(count byte) bool {
+	updated := false
 	state.settings.HandBlacks = count
 	for i := range state.Players {
 		player := &state.Players[i]
@@ -158,15 +169,19 @@ func (state *GameState) SetHandBlacks(count byte) {
 		}
 		if hand < count {
 			player.DrawBlack(count-hand, &state.black)
+			updated = true
 			continue
 		}
 		if hand > count {
 			player.Black = player.Black[:count]
+			updated = true
 		}
 	}
+	return updated
 }
 
-func (state *GameState) SetHandWhites(count byte) {
+func (state *GameState) SetHandWhites(count byte) bool {
+	updated := false
 	state.settings.HandWhites = count
 	for i := range state.Players {
 		player := &state.Players[i]
@@ -176,12 +191,20 @@ func (state *GameState) SetHandWhites(count byte) {
 		}
 		if hand < count {
 			player.DrawWhite(count-hand, &state.white)
+			updated = true
 			continue
 		}
 		if hand > count {
 			player.White = player.White[:count]
+			updated = true
 		}
 	}
+	return updated
+}
+
+func (state *GameState) SetRandomBlack(enable bool) bool {
+	state.settings.RandomBlack = enable
+	return false
 }
 
 func (state *GameState) incrementNextUp() {
